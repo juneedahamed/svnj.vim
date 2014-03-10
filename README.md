@@ -1,6 +1,8 @@
 #svnj.vim
 Vim plugin for subversion (svn)
 
+![Alt text] (https://github.com/juneedahamed/screenshots/blob/master/screen1.png?raw=true)
+
 ##Supported OS
 Unix and Mac OSX
 
@@ -10,7 +12,7 @@ Unix and Mac OSX
 2. **svn st**
 3. **svn diff**
 4. **svn blame**
-5.
+
 
 ##Installation
 
