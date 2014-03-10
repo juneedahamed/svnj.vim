@@ -1,5 +1,4 @@
-svnj.vim
-========
+#svnj.vim
 Vim plugin for subversion (svn)
 
 ##Supported OS
