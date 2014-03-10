@@ -1,3 +1,3 @@
 svnj.vim
 ========
-vim plugin
+vim plugin for svn
