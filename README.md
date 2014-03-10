@@ -1,5 +1,5 @@
 #svnj.vim
-Vim plugin for subversion (svn)
+Vim (v7 and up) plugin for subversion (svn)
 
 ##Screen shots
 
