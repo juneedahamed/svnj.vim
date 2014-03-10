@@ -1,0 +1,136 @@
+*svnj.txt*                       7.4                                     v0.1
+*svnj* *SVN*
+
+========================================================================================
+CONTENTS                                                             *svnj-contents*
+    1. INTRO.........................................................|svnj-intro|
+    2. COMMANDS......................................................|svnj-commands|
+    3. OPTIONS.......................................................|svnj-options|
+    4. MAPPINGS......................................................|svnj-mappings|
+========================================================================================
+
+INTRO                                                                *svnj-intro*
+
+Plugin for subversion, supported operations are
+    1. svn log
+    2. svn st
+    3. svn diff
+    4. svn blame
+
+
+========================================================================================
+COMMANDS                                                             *svnj-commands*
+
+:SVNBlame                                                            *SVNBlame*
+
+    Vertically splits the blame info for the file in bufffer
+
+:SVNDiff                                                             *SVNDiff*
+
+    VimDiff the current file in buffer. For diff with other revisions
+    use :SVNLog and then select the required revision to diff. See SVNLog for
+    more info.
+
+
+:SVNStatus                                                           *SVNStatus*
+
+    Lists the output of the svn status from the working root dir.
+    On start of this command press "." to list only changes from the current dir
+    Provide space separated grep arguments.
+    During starup of this command:
+        1. Escape key will List status from working root dir
+        2. "." will list status from current working dir
+        3. "py sh" will show status of files containing py and sh only
+        4. q will use quite option for svn st command
+        5. u will use update option for svn st command
+
+    Pressing Ctrl-space will mark the file for open
+    Pressing Ctrl-Enter Will open all marked files
+    Pressing Ctrl-o will open all listed file
+
+:SVNLog                                                              *SVNLog*
+
+    Lists the log for the current file in buffer.
+    The status line will display the current revision.
+    To diff with a single revision navigate to the line using Up and Down Arrows
+    and then press Enter. Diff will be done with selected revision and the buffer file.
+    Supports up to 2 revisions to be selected for diff.
+    Use Ctrl-Space to mark the file for diff.
+
+:SVNCommits                                                          *SVNCommits*
+
+    Lists the commit/checkin made from the current working directory
+    Pressing Enter will display the svn log using revision:HEAD
+    Pressing Ctrl-p will display svn log using revision:PREV
+    Select upto two revisions to diff across the selected revisions using Ctrl-Space,
+    the log of revisionA:revisionB will be displayed
+
+
+========================================================================================
+OPTIONS                                                     *svnj-options*
+
+Description:~
+
+                                                           *'g:svnj_branch_url'*
+                                                           *'g:svnj_trunk_url'*
+g:svnj_branch_url
+g:svnj_trunk_url
+
+    These variable are used to retrieve the files from branches and trunk. If this option
+    is set to proper value svnj shall be able to display files from the trunk and other
+    branches. Helpful to diff and logs of files across branches and/or trunk.
+    These values should point to the parent directory of the checkedout copy at the
+    svn server : >
+
+        let g:svnj_branch_url = svn://127.0.0.1/Path/until/branches
+        let g:svnj_trunk_url = svn://127.0.0.1/Path/until/checkedout_dir_at_trunk
+<
+
+    Example 1:
+        Lets say for a given file sample.txt
+        -------------------------------------------------------------------------------
+        SVN Trunk is   "svn://127.0.0.1/Root/trunk/dir1/dir2/sample.txt"
+        SVN Branch is  "svn://127.0.0.1/Root/branches/example_branch1/dir1/dir2/sample.txt"
+
+
+        Working copy of trunk is : /home/user/mytrunk/dir1/dir2/sample.txt
+        The working copy has the trunk checked out at mytrunk directory from svn://127.0.0.1/Root/trunk/
+
+        The vimrc settings
+        let g:svnj_trunk_url = "svn://127.0.0.1/Root/trunk
+        let g:svnj_branch_url = "svn://127.0.0.1/Root/branches
+
+
+                                                           *'g:svnj_max_logs'*
+g:svnj_max_logs
+    This is used as a count of logs retrieved per revision. The default is 10
+    In order to increase this value to say 20 at vimrc : >
+    let g:svnj_max_logs = 20
+<
+
+
+========================================================================================
+MAPPINGS                                                   *svnj-mappings*
+
+Description:~
+                                                    *'g:svnj_allow_leader_mappings'*
+
+Use this option to allow default mappings. The dafault value for this is 0 : >
+    let g:svnj_allow_leader_mappings = 1
+<
+    With above value set the following are default mappings
+    noremap <silent> <leader>b :SVNBlame<CR>
+    noremap <silent> <leader>c :SVNCommits<CR>
+    noremap <silent> <leader>d :SVNDiff<CR>
+    noremap <silent> <leader>s :SVNStatus<CR>
+    noremap <silent> <leader>l :SVNLog<CR>
+    noremap <silent> <leader>q :diffoff! <CR> :q<CR>
+
+
+========================================================================================
+CHANGELOG                                           *svnj-changelog*
+
+Initial Revision:  v0.1
+
+========================================================================================
+vim:ft=help:et:ts=2:sw=2:sts=2:norl
