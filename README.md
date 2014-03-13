@@ -16,6 +16,7 @@ MacOSX/Linux
 2. **svn status**
 3. **svn diff**
 4. **svn blame**
+4. **svn list**
 
 
 ##Installation
