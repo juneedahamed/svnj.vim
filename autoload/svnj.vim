@@ -50,9 +50,10 @@ let s:svnj_ignore_files_pat = '\v('. join(s:svnj_ignore_files, '|') .')$'
 "           idx     : 0
 "           title   : str(SVNLog | SVNStatus | SVNCommits | svnurl)
 "           meta    : metad ,
-"           logd      : logdict
-"           statusd   : statusdict
-"           commitsd  : logdict
+"           logd    : logdict
+"           statusd : statusdict
+"           listd   : listdict 
+"           commitsd : logdict
 "           menud     : menudict
 "           error     : errd
 "           selectd : {strtohighlight:cache}   log = revision:svnurl,
@@ -75,6 +76,14 @@ let s:svnj_ignore_files_pat = '\v('. join(s:svnj_ignore_files, '|') .')$'
 "          ops    :
 "        }
 "statusentryd = { line : str(modtype filepath)  modtype: str, filepath : modified_or_new_filepath}
+"
+"listdict = {
+"          contents: {idx : listentryd},
+"          format:funcref,
+"          select:funcref
+"          ops    :
+"}
+"listentryd = { line : filepath}
 "
 "menudict = {
 "          contents : {idx : menudentryd},
@@ -114,6 +123,15 @@ let s:statusops = {
             \ s:selectkey : {'callback':'svnj#handleStatusSelect', 'descr': s:selectdscr},
             \ }
 "end "2}}}
+"
+"Key mappings for svn list output listops"{{{2
+let s:listops = {
+            \ "\<Enter>"  : {'callback':'svnj#openListFile', 'descr': 'Ent:Open'},
+            \ "\<C-o>"    : {'callback':'svnj#openListFiles', 'descr': 'C-o:OpenAll'},
+            \ "\<C-Enter>": {'callback':'svnj#openSelected', 'descr':'C-Ent:OpenSelected'},
+            \ s:selectkey : {'callback':'svnj#handleListSelect', 'descr': s:selectdscr},
+            \ }
+"end "2}}}
 
 "Key mappings for svn log output on branch/trunk commitsop"{{{2
 let s:commitops = {
@@ -132,8 +150,8 @@ let s:menuops = { "\<Enter>"  : {'callback':'svnj#handleMenuOps', 'descr': 'Ente
 "Default empty dir for each operations with mandatory keys  entryd
 let s:entryd = {'contents':{}, 'ops':{}}
 
-let [s:logkey, s:statuskey, s:commitskey, s:menukey] = [
-            \ 'logd', 'statusd', 'commitsd', 'menud']
+let [s:logkey, s:statuskey, s:commitskey, s:listkey, s:menukey] = [
+            \ 'logd', 'statusd', 'commitsd', 'listd', 'menud']
 
 let s:svnd = {}
 fun! s:svnd.New(...) dict
@@ -158,6 +176,9 @@ fun! s:svnd.getEntries() dict
     endif
     if has_key(self, s:commitskey)
         call add(rlst, self.commitsd)
+    endif
+    if has_key(self, s:listkey)
+        call add(rlst, self.listd)
     endif
     if has_key(self, s:menukey)
         call add(rlst, self.menud)
@@ -263,11 +284,13 @@ fun! svnj#SVNLog()
     unlet! svnd
 endf
 
-fun! svnj#SVNStatus()
+fun! svnj#SVNStatus(...)
     let svnd = s:svnd.New('SVNStatus', {s:statuskey : deepcopy(s:entryd)})
     try
-        let choice = input('Status (q quiet|u updates| '.
+        let choice = a:0 > 0 ? a:1 :
+                    \ input('Status (q quiet|u updates| '. 
                     \ 'Enter for All|Space separated multiple grep args): ')
+
         let svnd.meta = s:getMeta(getcwd())
         let cwd = svnd.meta.workingrootdir
         let svncmd = strlen(choice) > 0 ? s:argsSVNStatus(choice, cwd) :
@@ -283,6 +306,41 @@ fun! svnj#SVNStatus()
     endtry
     call winj#populateJWindow(svnd)
     unlet! svnd
+endf
+
+fun! svnj#SVNList(...)
+    let svnd = s:svnd.New('SVNList', {s:listkey : deepcopy(s:entryd)})
+    try
+        let thedir = a:0 > 0 ? a:1 : getcwd()
+        let svnd.meta = s:getMeta(thedir)
+        let svncmd = 'svn list --non-interactive ' . thedir
+        let listentries = s:svnList(svncmd) 
+        if empty(listentries)
+            let svnd = s:addErr(svnd, "No files listed for ", svnd.meta.workingrootdir)
+        else
+            call svnd.addContents(s:listkey, listentries, s:listops)
+        endif
+    catch
+        let svnd = s:addErr(svnd, 'Failed ', v:exception)
+    endtry
+    call winj#populateJWindow(svnd)
+    unlet! svnd
+endf
+
+fun! s:svnList(svncmd)
+    let shellout = s:execShellCmd(a:svncmd)
+    let shelloutlist = split(shellout, '\n')
+    let listentries = []
+    for line in  shelloutlist
+        if len(matchstr(line, s:svnj_ignore_files_pat)) != 0
+            continue
+        endif
+        let listentryd = {}
+        let listentryd.line = line
+        let listdict = {}
+        call add(listentries, listentryd)
+    endfor
+    return listentries
 endf
 
 fun! s:svnSummary(svncmd, meta)
@@ -325,9 +383,19 @@ fun! s:argsSVNStatus(choice, cwd)
     let svncmd = (quiet == 1 ) ? svncmd . ' -q ' . cwd : svncmd . cwd
     if len(thegrep_cands) > 0
         let thegrep_expr = '(' . join(thegrep_cands, '|') . ')'
-        let svncmd = svncmd . ' | grep -E \'' . thegrep_expr . '\''
+        let svncmd = svncmd . " | grep -E \'" . thegrep_expr . "\'"
     endif
     return svncmd
+endf
+
+fun! svnj#openListFiles(svnd, key)
+    for key in keys(a:svnd.listd.contents)
+        call winj#openGivenFile(a:svnd.listd.contents[key].line)
+    endfor
+endf
+
+fun! svnj#openListFile(svnd, key)
+    return winj#openGivenFile(a:svnd.listd.contents[a:key].line)
 endf
 
 fun! svnj#openStatusFiles(svnd, key)
@@ -375,6 +443,15 @@ fun! svnj#handleCommitsSelect(svnd, key)
         let revisionB = revision
         call s:showCommitsAcross(revisionA, revisionB, a:svnd.meta)
     endif
+endf
+
+fun! svnj#handleListSelect(svnd, key)
+    if has_key(a:svnd.selectd, a:key.':')
+        call remove(a:svnd.selectd, a:key.':')
+        return 1
+    endif
+    let a:svnd.selectd[a:key. ':'] = a:svnd.listd.contents[a:key].line
+    return 1
 endf
 
 fun! svnj#handleStatusSelect(svnd, key)

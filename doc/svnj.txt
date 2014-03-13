@@ -119,18 +119,21 @@ Use this option to allow default mappings. The dafault value for this is 0 : >
     let g:svnj_allow_leader_mappings = 1
 <
     With above value set the following are default mappings
-    noremap <silent> <leader>b :SVNBlame<CR>
-    noremap <silent> <leader>c :SVNCommits<CR>
-    noremap <silent> <leader>d :SVNDiff<CR>
-    noremap <silent> <leader>s :SVNStatus<CR>
-    noremap <silent> <leader>l :SVNLog<CR>
-    noremap <silent> <leader>q :diffoff! <CR> :q<CR>
-
+    map <silent> <leader>b :SVNBlame<CR>
+    map <silent> <leader>c :SVNCommits<CR>
+    map <silent> <leader>d :SVNDiff<CR>
+    map <silent> <leader>s :SVNStatus<CR>  
+    map <silent> <leader>su :SVNStatus<CR>  
+    map <silent> <leader>sq :SVNStatus u q<CR>
+    map <silent> <leader>sp :SVNStatus u py<CR>
+    map <silent> <leader>l :SVNLog<CR>
+    map <silent> <leader>L :SVNList<CR>
+    map <silent> <leader>q :diffoff! <CR> :q<CR>
 
 ========================================================================================
 CHANGELOG                                           *svnj-changelog*
 
-Initial Revision:  v0.1
+Initial Revision:  v0.1~
 
 ========================================================================================
 vim:ft=help:et:ts=2:sw=2:sts=2:norl
