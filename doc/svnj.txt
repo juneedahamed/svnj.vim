@@ -44,6 +44,11 @@ COMMANDS                                                             *svnj-comma
         4. q will use quite option for svn st command
         5. u will use update option for svn st command
 
+    Optional Command arguments
+    1. u  : passes -u to svn status
+    2. q  : passes -q to svn status
+    3. ascii characters 
+
     Pressing Ctrl-space will mark the file for open
     Pressing Ctrl-Enter Will open all marked files
     Pressing Ctrl-o will open all listed file
@@ -65,6 +70,9 @@ COMMANDS                                                             *svnj-comma
     Select upto two revisions to diff across the selected revisions using Ctrl-Space,
     the log of revisionA:revisionB will be displayed
 
+:SVNList                                                            *SVNList*
+
+    Output of svn list, Takes directory names as arguments
 
 ========================================================================================
 OPTIONS                                                     *svnj-options*

@@ -42,7 +42,8 @@ Run from vim commandline
 3. `:SVNLog`
 4. `:SVNStatus`
 5. `:SVNCommits`
-6. **`:help svn`**
+6. `:SVNList`
+7. **`:help svn`**
 
 ##Settings .vimrc 
 
