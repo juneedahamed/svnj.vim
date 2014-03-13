@@ -7,6 +7,10 @@ VIM (VIM 7 and up) plugin for subversion (svn)
 
 ![svnstatus][2]
 
+![svnlog2][3]
+
+![svnlogbranches][4]
+
 ##Supported OS
 MacOSX/Linux
 
@@ -65,3 +69,5 @@ Run from vim commandline
 
 [1]: http://i.imgur.com/oY6E2kP.png
 [2]: http://i.imgur.com/I69Mny2.png
+[3]: http://imgur.com/GTBhjVT 
+[4]: http://imgur.com/QskUigu 
