@@ -3,9 +3,9 @@ VIM (VIM 7 and up) plugin for subversion (svn)
 
 ##Screen shots
 
-![Alt text] (https://github.com/juneedahamed/screenshots/blob/master/screen1.png?raw=true)
+![svnlog][1]
 
-![Alt text] (https://github.com/juneedahamed/screenshots/blob/master/svnstatus.png?raw=true)
+![svnstatus][2]
 
 ##Supported OS
 MacOSX/Linux
@@ -60,3 +60,6 @@ Run from vim commandline
 1. At .vimrc addd  `let g:svnj_allow_leader_mappings=1`
 
     For more info run at command line `:help svnj-mappings`
+
+[1]: http://i.imgur.com/oY6E2kP.png
+[2]: http://i.imgur.com/I69Mny2.png
