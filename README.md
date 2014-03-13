@@ -69,5 +69,5 @@ Run from vim commandline
 
 [1]: http://i.imgur.com/oY6E2kP.png
 [2]: http://i.imgur.com/I69Mny2.png
-[3]: http://imgur.com/GTBhjVT 
-[4]: http://imgur.com/QskUigu 
+[3]: http://i.imgur.com/QskUigu.png
+[4]: http://i.imgur.com/GTBhjVT.png
