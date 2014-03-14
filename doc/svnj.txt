@@ -44,11 +44,6 @@ COMMANDS                                                             *svnj-comma
         4. q will use quite option for svn st command
         5. u will use update option for svn st command
 
-    Optional Command arguments
-    1. u  : passes -u to svn status
-    2. q  : passes -q to svn status
-    3. ascii characters 
-
     Pressing Ctrl-space will mark the file for open
     Pressing Ctrl-Enter Will open all marked files
     Pressing Ctrl-o will open all listed file
@@ -70,9 +65,6 @@ COMMANDS                                                             *svnj-comma
     Select upto two revisions to diff across the selected revisions using Ctrl-Space,
     the log of revisionA:revisionB will be displayed
 
-:SVNList                                                            *SVNList*
-
-    Output of svn list, Takes directory names as arguments
 
 ========================================================================================
 OPTIONS                                                     *svnj-options*
@@ -88,7 +80,8 @@ g:svnj_trunk_url
     is set to proper value svnj shall be able to display files from the trunk and other
     branches. Helpful to diff and logs of files across branches and/or trunk.
     These values should point to the parent directory of the checkedout copy at the
-    svn server : >
+    svn server.
+    IMP The path for a file/dir from trunk and branches should be same : >
 
         let g:svnj_branch_url = svn://127.0.0.1/Path/until/branches
         let g:svnj_trunk_url = svn://127.0.0.1/Path/until/checkedout_dir_at_trunk
@@ -105,8 +98,8 @@ g:svnj_trunk_url
         The working copy has the trunk checked out at mytrunk directory from svn://127.0.0.1/Root/trunk/
 
         The vimrc settings
-        let g:svnj_trunk_url = "svn://127.0.0.1/Root/trunk
-        let g:svnj_branch_url = "svn://127.0.0.1/Root/branches
+        let g:svnj_trunk_url = "svn://127.0.0.1/Root/trunk"
+        let g:svnj_branch_url = "svn://127.0.0.1/Root/branches"
 
 
                                                            *'g:svnj_max_logs'*
@@ -114,6 +107,14 @@ g:svnj_max_logs
     This is used as a count of logs retrieved per revision. The default is 10
     In order to increase this value to say 20 at vimrc : >
     let g:svnj_max_logs = 20
+<
+                                                           *'g:svnj_ignore_files'*
+g:svnj_ignore_files
+    This is used to ignore files for svn status, svn list and svn logs
+    Default ignore list is ['.pyc', '.bin', '.egg', '.so', '*.rpd']
+       
+    To ignore files with extension .class, .obj at vimrc code : >
+    let g:svnj_ignore_files = ['.class', '.obj']
 <
 
 
