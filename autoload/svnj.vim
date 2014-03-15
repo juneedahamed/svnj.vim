@@ -11,6 +11,18 @@ if ! exists('g:svnj_max_logs')
     let g:svnj_max_logs = 10
 endif
 
+if ! exists('g:svnj_find_files')
+    let g:svnj_find_files = 1
+endif
+
+if ! exists('g:svnj_branch_url_extend') 
+    let g:svnj_branch_url_extend = {}
+endif
+
+if type(g:svnj_branch_url_extend) != type({})
+    let g:svnj_branch_url_extend = {}
+endif
+
 let [s:menustart, s:menuend] = ['>>>', '<<<']
 let s:menupatt = "/" . s:menustart . "\.\*/"
 let s:menusyntax = 'syn match SVNMenu ' . s:menupatt
@@ -57,7 +69,15 @@ let s:svnj_ignore_files_pat = '\v('. join(s:svnj_ignore_files, '|') .')$'
 "           menud     : menudict
 "           error     : errd
 "           selectd : {strtohighlight:cache}   log = revision:svnurl,
+"           flistd : flistdict
 "       }
+"
+"flistdict = {
+"           contents { idx, flistentryd}
+"           format : funcref,
+"           ops :
+"}
+"flistentryd = { line :filepath }
 "
 "metad = { origurl : svnurl, filepath : absfilepath, url: svnurl, workingrootdir: workingrootlocalpath}
 "
@@ -142,6 +162,13 @@ let s:commitops = {
             \ }
 "end "2}}}
 
+"Key mappings for flist"{{{2
+let s:flistops = {
+            \ "\<Enter>"  : {'callback':'svnj#flistSelected', 'descr': 'Ent:SELECT'},
+            \ }
+"end "2}}}
+
+
 "Key mappings for svn menus, list trunks, list branches etc.,  menuops
 let s:menuops = { "\<Enter>"  : {'callback':'svnj#handleMenuOps', 'descr': 'Enter:Open'}, }
 
@@ -150,8 +177,8 @@ let s:menuops = { "\<Enter>"  : {'callback':'svnj#handleMenuOps', 'descr': 'Ente
 "Default empty dir for each operations with mandatory keys  entryd
 let s:entryd = {'contents':{}, 'ops':{}}
 
-let [s:logkey, s:statuskey, s:commitskey, s:listkey, s:menukey] = [
-            \ 'logd', 'statusd', 'commitsd', 'listd', 'menud']
+let [s:logkey, s:statuskey, s:commitskey, s:listkey, s:flistkey,  s:menukey] = [
+            \ 'logd', 'statusd', 'commitsd', 'listd', 'flistd', 'menud']
 
 let s:svnd = {}
 fun! s:svnd.New(...) dict
@@ -179,6 +206,9 @@ fun! s:svnd.getEntries() dict
     endif
     if has_key(self, s:listkey)
         call add(rlst, self.listd)
+    endif
+    if has_key(self, s:flistkey)
+        call add(rlst, self.flistd)
     endif
     if has_key(self, s:menukey)
         call add(rlst, self.menud)
@@ -504,6 +534,7 @@ fun! svnj#listFilesFrom(svnd, key)
         let svnd.title = fileurl
         call svnd.addContents(s:logkey, s:svnLogs(svnd.meta.url), s:logops)
     catch
+        echo v:exception
         let svnd = s:addErr(svnd, 'Failed to construct svn url',
                     \ ' OR File does not exist' )
     endtry
@@ -644,22 +675,125 @@ fun! s:getMeta(fileabspath)
     return metad
 endf
 
-fun! s:svnBranchURLFromTrunk(tURL, tobranchname)
-    let thisbranchurl = s:svnj_branch_url . a:tobranchname
-    let branchurl = substitute(a:tURL, s:svnj_trunk_url, thisbranchurl, '')
-    return branchurl
+fun! s:findFile(pURL, tfile)
+    let shellist = []
+    try
+        let fname = fnamemodify(a:tfile, ":t")
+        let svncmd = 'svn list -R --non-interactive ' . a:pURL . ' | grep ' . fname
+        let shellout = s:execShellCmd(svncmd)
+        let shellist = split(shellout, '\n')
+
+        "If shell returned one file we found the required one
+        if len(shellist) == 1 
+            let fURL = a:pURL . shellist[0]
+            if svnj#validSVNURL(fURL)
+                return [[fURL,] , 1]
+            endif
+        endif
+
+        "If shell returned more than one file will have to narrow it down
+        if len(shellist) > 0
+            "if whole path matches we are done
+            let found = index(shellist, a:tfile)
+            if found != -1 
+                let fURL = a:pURL . shellist[ found ]
+                if svnj#validSVNURL(fURL)
+                    return [[fURL,] , 1]
+                endif
+            endif
+            
+            "whole path did not match ask user for a file
+            "lets try to narrow it down
+            let expr = ".*".a:tfile
+            let flist = filter(copy(shellist),  'v:val =~ expr' )
+            if len(flist) == 1
+                let fURL = a:pURL . flist[0]
+                if svnj#validSVNURL(fURL)
+                    return [[fURL,] , 1]
+                endif
+            elseif len(flist) > 1
+                let shellist = flist
+            endif
+
+            let usrFile = s:askUsrForFile(shellist, a:tfile)
+            if usrFile != ""
+                let fURL = a:pURL . usrFile
+                if svnj#validSVNURL(fURL)
+                    return [[fURL,] , 1]
+                endif
+            endif
+        endif
+    catch
+        "echo "Exception at findFile ." v:exception
+    endtry
+    return [shellist, 0]
 endf
 
-fun! s:svnBranchURLFromBranch(bURL, tobranchname)
-    let frombranchname = s:svnBranchName(a:bURL)
-    return substitute(a:bURL, frombranchname, a:tobranchname, '')
+fun! s:askUsrForFile(files, lfile)
+    let s:selectedFile = ""
+    if len(a:files) > 0
+        let qsvnd = s:svnd.New("Select for :" . a:lfile, 
+                    \ {s:flistkey : deepcopy(s:entryd)})
+        let flistentries = []
+        for tfile in a:files
+            let flistentryd = {}
+            let flistentryd.line = tfile
+            call add(flistentries, flistentryd)
+        endfor
+        call qsvnd.addContents(s:flistkey, flistentries, s:flistops)
+        call winj#populateJWindow(qsvnd)
+        if s:selectedFile != ""
+            return s:selectedFile
+        endif
+    endif
+endf
+
+fun! svnj#flistSelected(qsvnd, key)
+    let s:selectedFile = a:qsvnd.flistd.contents[a:key].line
+endf
+
+fun! s:svnBranchURLFromTrunk(tURL, tbname)
+    let bURL = s:svnj_branch_url . a:tbname
+    let rbURL = substitute(a:tURL, s:svnj_trunk_url, bURL, '')
+
+    if !svnj#validSVNURL(rbURL) && g:svnj_find_files == 1
+        let tfile = substitute(a:tURL, s:svnj_trunk_url, "", "")
+        let [ tbURLs, result] = s:findFile(bURL, tfile)
+        if result 
+            return tbURLs[0]
+        endif
+    endif
+    return rbURL
+endf
+
+fun! s:svnBranchURLFromBranch(bURL, tbname)
+    let fbname = s:svnBranchName(a:bURL)
+    let rbURL = substitute(a:bURL, fbname, a:tbname, '')
+
+    if !svnj#validSVNURL(rbURL) && g:svnj_find_files == 1
+        let tfile = substitute(a:bURL, s:svnj_branch_url, "", "")
+        let [ tbURLs, result] = s:findFile(s:svnj_branch_url . a:tbname, tfile)
+        if result 
+            return tbURLs[0]
+        endif
+    endif
+    return rbURL
 endf
 
 fun! s:svnTrunkURLFromBranchURL(bURL)
     let branchname = s:svnBranchName(a:bURL)
     if strlen(branchname) > 0
         let currentbranchurl = s:svnj_branch_url . branchname
-        return substitute(a:bURL, currentbranchurl, s:svnj_trunk_url, '')
+        let tURL = substitute(a:bURL, currentbranchurl, s:svnj_trunk_url, '')
+
+        if !svnj#validSVNURL(tURL) && g:svnj_find_files == 1
+            let tfile = substitute(a:bURL, currentbranchurl, "", "")
+            let [ tURLs, result] = s:findFile(s:svnj_trunk_url, tfile)
+            if result 
+                return tURLs[0]
+            endif
+        endif
+        return tURL
     endif
     return ''
 endf

@@ -80,11 +80,10 @@ g:svnj_trunk_url
     is set to proper value svnj shall be able to display files from the trunk and other
     branches. Helpful to diff and logs of files across branches and/or trunk.
     These values should point to the parent directory of the checkedout copy at the
-    svn server.
-    IMP The path for a file/dir from trunk and branches should be same : >
+    svn server  : >
 
         let g:svnj_branch_url = svn://127.0.0.1/Path/until/branches
-        let g:svnj_trunk_url = svn://127.0.0.1/Path/until/checkedout_dir_at_trunk
+        let g:svnj_trunk_url = svn://127.0.0.1/Path/until/trunk
 <
 
     Example 1:
@@ -93,14 +92,21 @@ g:svnj_trunk_url
         SVN Trunk is   "svn://127.0.0.1/Root/trunk/dir1/dir2/sample.txt"
         SVN Branch is  "svn://127.0.0.1/Root/branches/example_branch1/dir1/dir2/sample.txt"
 
-
-        Working copy of trunk is : /home/user/mytrunk/dir1/dir2/sample.txt
-        The working copy has the trunk checked out at mytrunk directory from svn://127.0.0.1/Root/trunk/
-
         The vimrc settings
         let g:svnj_trunk_url = "svn://127.0.0.1/Root/trunk"
         let g:svnj_branch_url = "svn://127.0.0.1/Root/branches"
 
+                                                           *'g:svnj_find_files'*
+g:svnj_find_files
+    This option works together with g:svnj_branch_url and g:svnj_trunk_url to 
+    list files across branches and trunk . If the directory structure do not 
+    match, setting this option to 1 will have svnj look for filenames using svn
+    list on the required branch/trunk. Cases where same filename exists in more 
+    than one directory user will be prompted to select the correct file from list
+    of files.  The default value is 1, to disable code at .vimrc : >
+    
+    let g:svnj_find_files = 0
+<
 
                                                            *'g:svnj_max_logs'*
 g:svnj_max_logs

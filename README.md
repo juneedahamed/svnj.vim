@@ -16,11 +16,42 @@ MacOSX/Linux
 
 ##Supported operations
 
-1. **svn log**
-2. **svn status**
-3. **svn diff**
-4. **svn blame**
-4. **svn list**
+ **svn log**, **svn status**, **svn diff**, **svn blame**, **svn list**
+
+##Features
+* <b>SVNLog</b>
+
+	Get the revisions of file in buffer. With the list of revisions from the output.
+    
+     - open/diff required file revision 
+     - mark required revision to open/diff
+     - list trunk
+     - list branches
+     - diff/open files across branches/trunk
+
+
+*  <b>SVNStatus</b>
+
+	Get the output of svn st. With the listed files
+	
+       - open any/all files
+       - mark required files to open
+       - pass q/u option to svn st
+       - global option to ignore files
+
+* <b>SVNComitts</b>
+
+       Get the list of files checked in across project revision. This command lists the output of svn log of the project directory.  
+     
+     - list HEAD/PREV
+     - mark revisions for comparing across marked revisions 
+     - open any/all/marked files listed
+     
+     
+* <b>SVNDiff</b>
+
+      Immediate diff the file in buffer with the previous revision.<br/>
+      For diff with selected revision use SVNLog
 
 
 ##Installation
