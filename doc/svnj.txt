@@ -44,9 +44,12 @@ COMMANDS                                                             *svnj-comma
         4. q will use quite option for svn st command
         5. u will use update option for svn st command
 
-    Pressing Ctrl-space will mark the file for open
-    Pressing Ctrl-Enter Will open all marked files
-    Pressing Ctrl-o will open all listed file
+    Key-Mappings:
+ 
+    Enter      : Open file under cursor and those marked
+    Ctrl-space : mark the file for open
+    Ctrl-o     : open all listed file
+    Ctrl-w     : toggle the wrap settings
 
 :SVNLog                                                              *SVNLog*
 
@@ -55,7 +58,15 @@ COMMANDS                                                             *svnj-comma
     To diff with a single revision navigate to the line using Up and Down Arrows
     and then press Enter. Diff will be done with selected revision and the buffer file.
     Supports up to 2 revisions to be selected for diff.
-    Use Ctrl-Space to mark the file for diff.
+    
+    Key-Mappings:
+ 
+    Enter       :  Opens file at cursor for diff
+                   If files were marked, opens all marked files for diff (max 2)  
+    Ctrl-Enter  : open marked revisons or revison under cursor as new file - no split
+    Ctrl-Space  : to mark the revision for diff.
+    Ctrl-w      : toggle the wrap settings. Helpful if the comments are longer
+    Ctrl-o      : open all marked revisions or revision under cursor
 
 :SVNCommits                                                          *SVNCommits*
 
@@ -114,6 +125,14 @@ g:svnj_max_logs
     In order to increase this value to say 20 at vimrc : >
     let g:svnj_max_logs = 20
 <
+
+                                                           *'g:svnj_max_diff'*
+g:svnj_max_diff
+    This is used as a count of max number of diffs at given time from SVNLog output.
+    The default is 2. In order to increase this value to say 3 at vimrc : >
+    let g:svnj_max_diff = 3
+<
+
                                                            *'g:svnj_ignore_files'*
 g:svnj_ignore_files
     This is used to ignore files for svn status, svn list and svn logs

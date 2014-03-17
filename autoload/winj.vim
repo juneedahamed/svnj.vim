@@ -5,6 +5,9 @@
 " License:      Distributed under the same terms as Vim itself. See :help license.
 " =============================================================================
 
+"autoload/winj.vim {{{1
+
+"vars "{{{2
 let s:jwinname = 'svnj_window'
 let s:jwinnr = -1
 let s:cdict = {}
@@ -15,7 +18,9 @@ let s:svnjhl = "Question"
 let s:leave = 0
 let s:stay = 1
 let s:curops = {}
+"2}}}
 
+"win handlers {{{2
 fun! winj#JWindow()
     call s:closeMe()
     let s:jwinnr = bufwinnr(s:jwinname)
@@ -41,7 +46,9 @@ fun! s:closeMe()
     endif
     return 0
 endf
+"2}}}
 
+"populate {{{2
 fun! winj#populateJWindow(cdict)
     call winj#JWindow()
     unlet! s:cdict
@@ -103,7 +110,9 @@ fun! s:populate(fltr)
     setl nomodifiable
     redr!
 endf
+"2}}}
 
+"prompt {{{2
 fun! s:prompt(fltr)
     let fltr = a:fltr
     while 1
@@ -162,7 +171,31 @@ fun! s:prompt(fltr)
     endwhile
     exe 'echo ""' |  redr
 endf
+"2}}}
 
+"highlight {{{2
+fun! s:dohighlights(fltr)
+     try
+        silent! exe s:jwinnr . 'wincmd w'
+        call clearmatches()
+        if len(s:cdict.selectd)
+            "let patt = join(copy(keys(s:cdict.selectd)), "\\|")
+            "let patt = "/\\(r17\\|r16\\)/"
+            "let patt = "/\\(" . patt . "\\)/"
+
+            let patt = join(map(copy(
+                        \ keys(s:cdict.selectd)), '"\\<" . v:val . ""' ), "\\|")
+            let patt = "/\\(" . patt . "\\)/"
+            exec 'match ' . s:svnjhl . ' ' . patt
+        endif
+    catch
+        echo v:exception
+        let x = input('Exception at dohighlight')
+    endtry
+endf
+"2}}}
+
+"open funs {{{2
 fun! winj#diffCurFileWith(revision, svnurl)
     call s:closeMe()
     let filetype=&ft
@@ -188,32 +221,22 @@ fun! winj#blame(svnurl, filepath)
     return 0
 endf
 
-fun! s:dohighlights(fltr)
-     try
-        silent! exe s:jwinnr . 'wincmd w'
-        call clearmatches()
-        if len(s:cdict.selectd)
-            "let patt = join(copy(keys(s:cdict.selectd)), "\\|")
-            "let patt = "/\\(r17\\|r16\\)/"
-            "let patt = "/\\(" . patt . "\\)/"
-
-            let patt = join(map(copy(
-                        \ keys(s:cdict.selectd)), '"\\<" . v:val . ""' ), "\\|")
-            let patt = "/\\(" . patt . "\\)/"
-            exec 'match ' . s:svnjhl . ' ' . patt
-        endif
-    catch
-        echo v:exception
-        let x = input('Exception at dohighlight')
-    endtry
-endf
-
 fun! winj#openGivenFile(thefile)
     silent! call s:closeMe()
     if filereadable(a:thefile) || isdirectory(a:thefile)
         silent! exe 'e' a:thefile
         return s:leave
     endif
+    return s:leave
+endf
+
+fun! winj#openFileRevision(revision, url)
+    call s:closeMe()
+    let filetype=&ft
+    let cmd="%!svn cat -" . a:revision . ' ' . a:url
+    let new_tab = ' e ' . a:revision
+    exec new_tab | exec cmd
+    exe "setl nomod noswf ft=" . filetype
     return s:leave
 endf
 
@@ -226,7 +249,9 @@ fun! winj#openFile(revision, url)
     exe "setl bt=nofile bh=wipe nobl noswf ro ft=" . filetype
     return s:leave
 endf
+"2}}}
 
+"stl update {{{2
 fu! s:updateStatus(filecount)
     echo " "
     let ops=""
@@ -241,3 +266,6 @@ fu! s:updateStatus(filecount)
     endif
     redraws
 endf
+"2}}}
+
+"1}}}
