@@ -79,6 +79,7 @@ Run from vim commandline
 4. `:SVNStatus`
 5. `:SVNCommits`
 6. `:SVNList`
+7. `:SVNListRec`
 7. **`:help svn`**
 
 ##Settings .vimrc 
