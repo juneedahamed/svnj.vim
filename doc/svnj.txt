@@ -1,4 +1,4 @@
-*svnj.txt*                       7.4                                     v0.1
+*svnj.txt*                       7.4                                     v0.3
 *svnj* *SVN*
 
 ========================================================================================
@@ -77,6 +77,29 @@ COMMANDS                                                             *svnj-comma
     the log of revisionA:revisionB will be displayed
 
 
+:SVNList                                                             *SVNList*
+
+    List the file/directories using svn list command. Takes optional directory from
+    which the list to be displayed
+
+    Key-Mappings:
+
+    Entrer : Open selected/marked files/directories
+    Ctrl-space : mark the file for open
+    Ctrl-o  : open all files/directories
+
+:SVNListRec                                                        *SVNListRec*
+
+    List the file/directories using svn list -R command. Takes optional directory from
+    which the list to be displayed. If there are lots of file under the listed directory
+    may take time to list all files. Depends on the response of the svn command
+
+    Key-Mappings:
+
+    Entrer : Open selected/marked files
+    Ctrl-space : mark the file for open
+    Ctrl-o  : open all files
+
 ========================================================================================
 OPTIONS                                                     *svnj-options*
 
@@ -132,6 +155,12 @@ g:svnj_max_diff
     The default is 2. In order to increase this value to say 3 at vimrc : >
     let g:svnj_max_diff = 3
 <
+                                                           *'g:svnj_max_open_files'*
+g:svnj_max_open_files
+    This is used as a count of max number of files to open with open all commands
+    The default is 10. In order to increase this value to say 12 at vimrc : >
+    let g:svnj_max_open_files = 12
+<
 
                                                            *'g:svnj_ignore_files'*
 g:svnj_ignore_files
@@ -141,7 +170,6 @@ g:svnj_ignore_files
     To ignore files with extension .class, .obj at vimrc code : >
     let g:svnj_ignore_files = ['.class', '.obj']
 <
-
 
 ========================================================================================
 MAPPINGS                                                   *svnj-mappings*
@@ -162,6 +190,7 @@ Use this option to allow default mappings. The dafault value for this is 0 : >
     map <silent> <leader>sp :SVNStatus u py<CR>
     map <silent> <leader>l :SVNLog<CR>
     map <silent> <leader>L :SVNList<CR>
+    map <silent> <leader>Lr :SVNListRec<CR>
     map <silent> <leader>q :diffoff! <CR> :q<CR>
 
 ========================================================================================

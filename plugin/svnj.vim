@@ -22,6 +22,7 @@ com! SVNBlame   call svnj#SVNBlame()
 
 com! -n=? SVNStatus  call svnj#SVNStatus(<f-args>)
 com! -n=? -com=dir SVNList    call svnj#SVNList(<q-args>)
+com! -n=? -com=dir SVNListRec call svnj#SVNListRec(<q-args>)
 "}}}
 
 "leader mappings "{{{
@@ -35,6 +36,7 @@ if exists('g:svnj_allow_leader_mappings') && g:svnj_allow_leader_mappings == 1
     map <silent> <leader>sp :SVNStatus u py<CR>
     map <silent> <leader>l :SVNLog<CR>
     map <silent> <leader>L :SVNList<CR>
+    map <silent> <leader>Lr :SVNListRec<CR>
     map <silent> <leader>q :diffoff! <CR> :q<CR>
 endif
 "}}}

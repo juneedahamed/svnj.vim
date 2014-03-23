@@ -21,6 +21,10 @@ if ! exists('g:svnj_find_files')
     let g:svnj_find_files = 1
 endif
 
+if ! exists('g:svnj_max_open_files')
+    let g:svnj_max_open_files = 10
+endif
+
 let [s:menustart, s:menuend] = ['>>>', '<<<']
 let s:menupatt = "/" . s:menustart . "\.\*/"
 let s:menusyntax = 'syn match SVNMenu ' . s:menupatt
@@ -45,14 +49,14 @@ let s:svnj_branch_url = s:initPathVariables('g:svnj_branch_url')
 let s:svnj_trunk_url = s:initPathVariables('g:svnj_trunk_url')
 let s:svnj_wcrp = s:initPathVariables('g:svnj_working_copy_root_path')
 
-let s:svnj_ignore_files = ['.pyc', '.bin', '.egg', '.so', '*.rpd']
+let s:svnj_ignore_files = ['.pyc', '.bin', '.egg', '.so', '.rpd', '.git']
 if exists('g:svnj_ignore_files') && type(g:svnj_ignore_files) == type([])
     for ig in g:svnj_ignore_files
         call add(s:svnj_ignore_files, ig)
     endfor
 endif
 
-let s:svnj_ignore_files_pat = '\v('. join(s:svnj_ignore_files, '|') .')$'
+let s:svnj_ignore_files_pat = '\v('. join(s:svnj_ignore_files, '|') .')'
 "2}}}
 
 "The main dict svnd structure reference {{{2
@@ -355,22 +359,17 @@ endf
 
 "SVNList {{{2
 fun! svnj#SVNList(...)
-    let svnd = s:svnd.New('SVNList', {s:listkey : deepcopy(s:entryd)})
-    try
-        let thedir = a:0 > 0 ? a:1 : getcwd()
-        let svnd.meta = s:getMeta(thedir)
-        let svncmd = 'svn list --non-interactive ' . thedir
-        let listentries = s:svnList(svncmd) 
-        if empty(listentries)
-            let svnd = s:addErr(svnd, "No files listed for ", svnd.meta.workingrootdir)
-        else
-            call svnd.addContents(s:listkey, listentries, s:listops)
-        endif
-    catch
-        let svnd = s:addErr(svnd, 'Failed ', v:exception)
-    endtry
-    call winj#populateJWindow(svnd)
-    unlet! svnd
+    let thedir = a:0 > 0 ? a:1 : getcwd()
+    let svncmd = 'svn list --non-interactive ' . thedir
+    call s:svnLists(svncmd, thedir, 0)
+endf
+"2}}}
+
+"SVNListRec {{{2
+fun! svnj#SVNListRec(...)
+    let thedir = a:0 > 0 ? a:1 : getcwd()
+    let svncmd = 'svn list --non-interactive -R ' . thedir
+    call s:svnLists(svncmd, thedir, 1)
 endf
 "2}}}
 
@@ -423,9 +422,15 @@ fun! s:argsSVNStatus(choice, cwd)
 endf
 
 fun! svnj#openAllStatusFiles(svnd, key)
+    let cnt = 0
     for key in keys(a:svnd.statusd.contents)
+        if cnt == g:svnj_max_open_files
+            break
+        endif
+        let cnt = cnt + 1
         call winj#openGivenFile(a:svnd.statusd.contents[key].filepath)
     endfor
+    call s:errorNoFiles(cnt)
 endf
 
 fun! svnj#openStatusFiles(svnd, key)
@@ -433,9 +438,15 @@ fun! svnj#openStatusFiles(svnd, key)
         let a:svnd.selectd[a:key. ':'] = a:svnd.statusd.contents[a:key].filepath
     endif
 
+    let cnt = 0
     for [thekey, filepath] in items(a:svnd.selectd)
+        if cnt == g:svnj_max_open_files
+            break
+        endif
+        let cnt = cnt + 1
         call winj#openGivenFile(filepath)
     endfor
+    call s:errorNoFiles(cnt)
 endf
 "2}}}
 
@@ -535,13 +546,35 @@ endf
 "2}}}
 
 "SVNList helpers {{{2
-fun! s:svnList(svncmd)
+fun! s:svnLists(svncmd, thedir, ignore_dirs)
+    try
+        let svnd = s:svnd.New('SVNList', {s:listkey : deepcopy(s:entryd)})
+        let svnd.meta = s:getMeta(a:thedir)
+        let listentries = s:svnList(a:svncmd, a:thedir, a:ignore_dirs) 
+        if empty(listentries)
+            let svnd = s:addErr(svnd, "No files listed for ", svnd.meta.workingrootdir)
+        else
+            call svnd.addContents(s:listkey, listentries, s:listops)
+        endif
+    catch
+        let svnd = s:addErr(svnd, 'Failed ', v:exception)
+    endtry
+    call winj#populateJWindow(svnd)
+    unlet! svnd
+endf
+
+fun! s:svnList(svncmd, thedir, ignore_dirs)
     let shellout = s:execShellCmd(a:svncmd)
+    "let thedir = len(a:thedir) == 0 ? "." : a:thedir
+    "let shellout = globpath(thedir , "**/*")
     let shelloutlist = split(shellout, '\n')
     let listentries = []
     for line in  shelloutlist
         if len(matchstr(line, s:svnj_ignore_files_pat)) != 0
             continue
+        endif
+        if a:ignore_dirs == 1 && isdirectory(line)
+                continue
         endif
         let listentryd = {}
         let listentryd.line = line
@@ -552,12 +585,18 @@ fun! s:svnList(svncmd)
 endf
 
 fun! svnj#openAllListedFiles(svnd, key)
+    let cnt = 0
     for key in keys(a:svnd.listd.contents)
         let filepath = a:svnd.listd.contents[key].line
         let abspath = a:svnd.meta.filepath != "" ? 
                     \ a:svnd.meta.filepath . "/". filepath : filepath
+        if cnt == g:svnj_max_open_files
+            break
+        endif
+        let cnt = cnt + 1
         call winj#openGivenFile(abspath)
     endfor
+    call s:errorNoFiles(cnt)
 endf
 
 fun! svnj#openListFiles(svnd, key)
@@ -565,11 +604,17 @@ fun! svnj#openListFiles(svnd, key)
         let a:svnd.selectd[a:key. ':'] = a:svnd.listd.contents[a:key].line
     endif
 
+    let cnt = 0
     for [thekey, filepath] in items(a:svnd.selectd)
         let abspath = a:svnd.meta.filepath != "" ? 
                     \ a:svnd.meta.filepath . "/". filepath : filepath
+        if cnt == g:svnj_max_open_files
+            break
+        endif
+        let cnt = cnt + 1
         call winj#openGivenFile(abspath)
     endfor
+    call s:errorNoFiles(cnt)
 endf
 "2}}}
 
@@ -695,6 +740,7 @@ fun! s:findFile(pURL, tfile)
     try
         let fname = fnamemodify(a:tfile, ":t")
         let svncmd = 'svn list -R --non-interactive ' . a:pURL . ' | grep ' . fname
+        echohl Error | echo "" | echon "Please wait, Finding file  : " |  echohl None | echon fname
         let shellout = s:execShellCmd(svncmd)
         let shellist = split(shellout, '\n')
 
@@ -1020,6 +1066,15 @@ fun! s:addToTitle(svnd, msg, prefix)
     catch
     endtry
 endf
+
+fun! s:errorNoFiles(cnt)
+    if a:cnt == 0 
+        let svnd = s:addErr(s:svnd.New('Failed'), "No files to open", "")
+        call winj#populateJWindow(svnd)
+        unlet! svnd
+    endif
+endf
+
 fun! svnj#toggleWrap(svnd, key)
     setl wrap!
     return 2
