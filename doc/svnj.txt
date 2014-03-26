@@ -44,12 +44,12 @@ COMMANDS                                                             *svnj-comma
         4. q will use quite option for svn st command
         5. u will use update option for svn st command
 
-    Key-Mappings:
+    Key-Mappings:~
  
-    Enter      : Open file under cursor and those marked
-    Ctrl-space : mark the file for open
-    Ctrl-o     : open all listed file
-    Ctrl-w     : toggle the wrap settings
+    |Enter|      : Open file under cursor and those marked
+    |Ctrl-space| : mark the file for open
+    |Ctrl-o|     : open all listed file
+    |Ctrl-w|     : toggle the wrap settings
 
 :SVNLog                                                              *SVNLog*
 
@@ -59,34 +59,38 @@ COMMANDS                                                             *svnj-comma
     and then press Enter. Diff will be done with selected revision and the buffer file.
     Supports up to 2 revisions to be selected for diff.
     
-    Key-Mappings:
+    Key-Mappings:~
  
-    Enter       :  Opens file at cursor for diff
+    |Enter|      : Opens file at cursor for diff
                    If files were marked, opens all marked files for diff (max 2)  
-    Ctrl-Enter  : open marked revisons or revison under cursor as new file - no split
-    Ctrl-Space  : to mark the revision for diff.
-    Ctrl-w      : toggle the wrap settings. Helpful if the comments are longer
-    Ctrl-o      : open all marked revisions or revision under cursor
+    |Ctrl-Enter| : open marked revisons or revison under cursor as new file - no split
+    |Ctrl-Space| : to mark the revision for diff.
+    |Ctrl-w|     : toggle the wrap settings. Helpful if the comments are longer
+    |Ctrl-o|     : open all marked revisions or revision under cursor
 
 :SVNCommits                                                          *SVNCommits*
 
     Lists the commit/checkin made from the current working directory
-    Pressing Enter will display the svn log using revision:HEAD
-    Pressing Ctrl-p will display svn log using revision:PREV
     Select upto two revisions to diff across the selected revisions using Ctrl-Space,
     the log of revisionA:revisionB will be displayed
 
+    Key-Mappings:~
+
+    |Enter|  : svn log using revision:HEAD
+    |Ctrl-p| : svn log using revision:PREV
+    |Ctrl-space| : mark to select a revision
+    |Ctrl-w| : toggle the wrap settings.
 
 :SVNList                                                             *SVNList*
 
     List the file/directories using svn list command. Takes optional directory from
     which the list to be displayed
 
-    Key-Mappings:
+    Key-Mappings:~
 
-    Entrer : Open selected/marked files/directories
-    Ctrl-space : mark the file for open
-    Ctrl-o  : open all files/directories
+    |Entrer| : Open selected/marked files/directories
+    |Ctrl-space| : mark the file for open
+    |Ctrl-o|  : open all files/directories
 
 :SVNListRec                                                        *SVNListRec*
 
@@ -94,11 +98,11 @@ COMMANDS                                                             *svnj-comma
     which the list to be displayed. If there are lots of file under the listed directory
     may take time to list all files. Depends on the response of the svn command
 
-    Key-Mappings:
+    Key-Mappings:~
 
-    Entrer : Open selected/marked files
-    Ctrl-space : mark the file for open
-    Ctrl-o  : open all files
+    |Entrer| : Open selected/marked files
+    |Ctrl-space| : mark the file for open
+    |Ctrl-o|  : open all files
 
 ========================================================================================
 OPTIONS                                                     *svnj-options*
@@ -138,7 +142,6 @@ g:svnj_find_files
     list on the required branch/trunk. Cases where same filename exists in more 
     than one directory user will be prompted to select the correct file from list
     of files.  The default value is 1, to disable code at .vimrc : >
-    
     let g:svnj_find_files = 0
 <
 
@@ -171,6 +174,27 @@ g:svnj_ignore_files
     let g:svnj_ignore_files = ['.class', '.obj']
 <
 
+                                                           *'g:svnj_fuzzy_search'*
+g:svnj_fuzzy_search
+    A fuzzy search at filter prompt is available if vim is compiled with support
+    for python. By default this is enabled if python exists. To disable this 
+    feature use this variable, 
+    Value 1 : enables fuzzy search (default)
+    Value 0 : disables fuzzy search
+    At .vimrc example : >
+    let g:svnj_fuzzy_search = 0
+<
+
+                                                *'g:svnj_fuzzy_search_result_max'*
+g:svnj_fuzzy_search_result_max
+    A fuzzy search at filter prompt is available if vim is compiled with support
+    for python. Look for |g:svnj_fuzzy_search| for more info.
+    This variable is used to display the max results matched from search, the default
+    is 50. 
+    At .vimrc example : >
+    let g:svnj_fuzzy_search_result_max = 60
+<
+
 ========================================================================================
 MAPPINGS                                                   *svnj-mappings*
 
@@ -196,7 +220,23 @@ Use this option to allow default mappings. The dafault value for this is 0 : >
 ========================================================================================
 CHANGELOG                                           *svnj-changelog*
 
-Initial Revision:  v0.1~
+v0.1~
+    + Initial Revision
+
+v0.2~
+    + Enhanced file lookup across branches and trunk. 
+        When directory structure across branches do not match and when more than one 
+        candidate is available in the lookup branch, the list of files are displayed
+        for selecting the proper file.
+
+v0.3~
+    + Added SVNList
+    + Added SVNListRec
+    + Added Fuzzy search at filter (Credits: Method pyMatch copied and modified from : Alexey Shevchenko
+               Userid FelikZ/ctrlp-py-matcher from github)
+
+    + Stream lined operations
+    + Added option to open files without splits
 
 ========================================================================================
 vim:ft=help:et:ts=2:sw=2:sts=2:norl

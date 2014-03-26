@@ -25,6 +25,18 @@ if ! exists('g:svnj_max_open_files')
     let g:svnj_max_open_files = 10
 endif
 
+if ! exists('g:svnj_fuzzy_search')
+    let g:svnj_fuzzy_search = 1
+elseif type(eval('g:svnj_fuzzy_search')) != type(0)
+    let g:svnj_fuzzy_search = 1
+endif
+
+if ! exists('g:svnj_fuzzy_search_result_max')
+    let g:svnj_fuzzy_search_result_max = 50
+elseif type(eval('g:svnj_fuzzy_search_result_max')) != type(0)
+    let g:svnj_fuzzy_search_result_max = 50
+endif
+
 let [s:menustart, s:menuend] = ['>>>', '<<<']
 let s:menupatt = "/" . s:menustart . "\.\*/"
 let s:menusyntax = 'syn match SVNMenu ' . s:menupatt
@@ -369,6 +381,8 @@ endf
 fun! svnj#SVNListRec(...)
     let thedir = a:0 > 0 ? a:1 : getcwd()
     let svncmd = 'svn list --non-interactive -R ' . thedir
+    echohl Question | echo "" | echon "Please wait, Listing files  : " 
+                \ |  echohl None  | echon svncmd
     call s:svnLists(svncmd, thedir, 1)
 endf
 "2}}}

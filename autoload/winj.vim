@@ -3,21 +3,22 @@
 " Description:  Simple plugin for svn
 " Author:       Juneed Ahamed
 " License:      Distributed under the same terms as Vim itself. See :help license.
+" Credits:      Method pyMatch copied and modified from : Alexey Shevchenko
+"               Userid FelikZ/ctrlp-py-matcher from github
+"
 " =============================================================================
 
 "autoload/winj.vim {{{1
-
+"
 "vars "{{{2
 let s:jwinname = 'svnj_window'
 let s:jwinnr = -1
-let s:cdict = {}
-let s:winjhi = '%#LineNr#'
+let [s:winjhi, s:svnjhl] = ['%#LineNr#', "Question"]
 
-let s:svnjhl = "Question"
-
-let s:leave = 0
-let s:stay = 1
-let s:curops = {}
+let [s:leave, s:stay] = [0, 1]
+let [b:curops, b:cdict] = [{}, {}]
+let [b:clines, b:flines] = [[], []]
+let [b:slst,  s:fregex] = ["", ""]
 "2}}}
 
 "win handlers {{{2
@@ -51,11 +52,11 @@ endf
 "populate {{{2
 fun! winj#populateJWindow(cdict)
     call winj#JWindow()
-    unlet! s:cdict
-    let s:cdict= a:cdict
+    unlet! b:cdict
+    let b:cdict= a:cdict
     silent! exe s:jwinnr . 'wincmd w'
-    if has_key(s:cdict, "setup")
-        call call(s:cdict.setup, [])
+    if has_key(b:cdict, "setup")
+        call call(b:cdict.setup, [])
     endif
     call s:populate("")
     call s:prompt("")
@@ -66,22 +67,21 @@ fun! s:populate(fltr)
     setl modifiable
     exec 'normal! ggdG'
     let linenum = 1
-    let cnt = 0
-    let scnt = 0
-    let lines = []
-    let s:theops = {}
-    let s:curops = {}
+    let [cnt, scnt] = [0, 0]
+    let [s:theops, b:curops] = [{}, {}]
+    let b:clines = []
+
     try
-        for thedict in s:cdict.getEntries()
+        for thedict in b:cdict.getEntries()
             let[tcnt, tscnt, tlines] = thedict.format(a:fltr)
             let cnt = cnt + tcnt
             let scnt = scnt + tscnt
-            call extend(lines, tlines)
+            call extend(b:clines, tlines)
             if has_key(thedict, 'ops') && tscnt > 0
                 for key in keys(thedict.contents)
                     for opkey in keys(thedict.ops)
                         let subdict = { opkey : thedict.ops[opkey].callback}
-                        call extend(s:curops, { opkey : thedict.ops[opkey].descr})
+                        call extend(b:curops, { opkey : thedict.ops[opkey].descr})
                         if has_key(s:theops, key)
                             call extend(s:theops[key], subdict)
                         else
@@ -93,13 +93,12 @@ fun! s:populate(fltr)
         endfor
     catch
         echo v:exception
-        let x = input("Exception at populate")
     endtry
-    call setline(1, lines)
-    let linenum = linenum + len(lines)
+    call setline(1, b:clines)
+    let linenum = linenum + len(b:clines)
 
-    if s:cdict.hasError()
-        call setline(linenum, s:cdict.error.line)
+    if b:cdict.hasError()
+        call setline(linenum, b:cdict.error.line)
         let linenum = linenum + 1
     endif
     if linenum ==# 1
@@ -108,6 +107,34 @@ fun! s:populate(fltr)
     silent! exe 'resize ' . line('$')
     call s:updateStatus((scnt) . '/'. cnt)
     setl nomodifiable
+    redr!
+endf
+
+fun! s:repopulate(fltr)
+    call clearmatches()
+    silent! exe s:jwinnr . 'wincmd w'
+    setl modifiable
+    exec 'normal! ggdG'
+    let tcnt = len(b:clines)
+    try
+        "let flines = filter(copy(b:clines),
+        "            \ 'strlen(a:fltr) > 0 ? stridx(v:val, a:fltr) >= 0 : 1')
+        call s:filterContents(b:clines, a:fltr, g:svnj_fuzzy_search_result_max)
+        if len(b:flines) <= 0
+            call setline(1, '--ERROR-- No contents')
+        else
+            call setline(1, b:flines)
+        endif
+        call s:dohighlights(a:fltr)
+
+        silent! exe 'resize ' . line('$')
+        call s:updateStatus(len(b:flines) . '/'. tcnt)
+        let b:flines = []
+    catch
+        echo v:exception
+        let x = input("At repopulate")
+    endtry
+    setl nomod
     redr!
 endf
 "2}}}
@@ -136,7 +163,7 @@ fun! s:prompt(fltr)
             let opsd = get(s:theops, key, {})
             if len(opsd) > 0 && has_key(opsd, chr)
                 let cback = opsd[chr]
-                let result = call(cback, [s:cdict, key])
+                let result = call(cback, [b:cdict, key])
                 if result == 0
                     break
                 elseif result == 1
@@ -151,7 +178,7 @@ fun! s:prompt(fltr)
             if chr ==# "\<BS>" || chr ==# '\<Del>'
                 if strlen(fltr) > 0
                     let fltr = strpart(fltr, 0, strlen(fltr) - 1)
-                    call s:populate(fltr)
+                    call s:repopulate(fltr)
                 endif
             elseif chr == "\<Esc>"
                 call s:closeMe()
@@ -159,14 +186,13 @@ fun! s:prompt(fltr)
             elseif nr >=# 0x20
                 if len(fltr)<=90
                     let fltr = fltr . chr
-                    call s:populate(fltr)
+                    call s:repopulate(fltr)
                 endif
             else
                 exec "normal! ". chr
             endif
         catch
             echo v:exception
-            let x = input("Exception at prompt")
         endtry
     endwhile
     exe 'echo ""' |  redr
@@ -178,19 +204,18 @@ fun! s:dohighlights(fltr)
      try
         silent! exe s:jwinnr . 'wincmd w'
         call clearmatches()
-        if len(s:cdict.selectd)
-            "let patt = join(copy(keys(s:cdict.selectd)), "\\|")
-            "let patt = "/\\(r17\\|r16\\)/"
-            "let patt = "/\\(" . patt . "\\)/"
-
+        if len(b:cdict.selectd)
             let patt = join(map(copy(
-                        \ keys(s:cdict.selectd)), '"\\<" . v:val . ""' ), "\\|")
+                        \ keys(b:cdict.selectd)), '"\\<" . v:val . ""' ), "\\|")
             let patt = "/\\(" . patt . "\\)/"
             exec 'match ' . s:svnjhl . ' ' . patt
         endif
+        
+        if s:fregex != ""    
+            call matchadd('Directory', '\v\c' . s:fregex)
+        endif
     catch
         echo v:exception
-        let x = input('Exception at dohighlight')
     endtry
 endf
 "2}}}
@@ -255,16 +280,87 @@ endf
 fu! s:updateStatus(filecount)
     echo " "
     let ops=""
-    for [key, descr] in items(s:curops)
+    for [key, descr] in items(b:curops)
         let ops = ops . descr . ' '
     endfor
     if strlen(a:filecount) > 0
-        let &l:stl = s:winjhi.s:cdict.title.'%= ' . '%#Search# ' . ops . 
+        let &l:stl = s:winjhi.b:cdict.title.'%= ' . '%#Search# ' . ops . 
                     \ s:winjhi . ' Entries:' . a:filecount
     else
-        let &l:stl = s:winjhi.s:cdict.title.s:winjhi . '%= '. ops .
+        let &l:stl = s:winjhi.b:cdict.title.s:winjhi . '%= '. ops .
     endif
     redraws
+endf
+"2}}}
+
+"python filterContents "{{{2
+"sets b:slst and s:fregex
+fun! s:pyMatch(items, str, limit)
+python << EOF
+import vim, re
+vim.command("let b:slst = ''")
+items = vim.eval('a:items')
+astr = vim.eval('a:str')
+lowAstr = astr.lower()
+limit = int(vim.eval('a:limit'))
+#rez = vim.bindeval('s:rez') #Oops supported after 7.3+ or something
+rez = []
+
+regex = ''
+for c in lowAstr[:-1]:
+    regex += c + '[^' + c + ']*'
+else:
+    regex += lowAstr[-1]
+
+res = []
+prog = re.compile(regex)
+for line in items:
+    result = prog.search(line.lower())
+    if result:
+        score = 1000.0 / ((1 + result.start()) * (result.end() - result.start() + 1))
+        res.append((score, line))
+
+sortedlist = sorted(res, key=lambda x: x[0], reverse=True)[:limit]
+sortedlist = [x[1] for x in sortedlist]
+
+rez.extend(sortedlist)
+result = "\n".join(rez) 
+
+vim.command("let s:fregex = '%s'" % regex)
+vim.command("let b:slst = '%s'" % result)
+EOF
+endf
+
+fun! s:filterContents(items, str, limit)
+    let b:flines = []
+    let s:fregex = ''
+    let wchars = ['*', '\', '~', '@', '%', '(', ')', '[', ']', '{', '}', "\'"] 
+
+    let str = ""
+    for i in range(0, len(a:str))
+        if index(wchars, a:str[i]) < 0 
+            let str = str . a:str[i]
+        endif
+    endfor
+
+    if str == ''
+        let b:flines=a:items
+        return
+    endif
+
+    if (g:svnj_fuzzy_search == 1) && has('python') 
+        call s:pyMatch(a:items, str, a:limit)
+        let b:flines = split(b:slst, "\n")
+        unlet! b:slst
+    else
+       call s:vimMatch(a:items, str, a:limit)
+    endif
+endf
+
+fun! s:vimMatch(clines, fltr, limit)
+    let b:flines = filter(copy(a:clines),
+                \ 'strlen(a:fltr) > 0 ? stridx(v:val, a:fltr) >= 0 : 1')
+    let s:fregex = ''
 endf
 "2}}}
 
