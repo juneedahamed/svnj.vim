@@ -2,6 +2,9 @@
 VIM (VIM 7 and up) plugin for subversion (svn)
 
 ##Screen shots
+![svnbrowse][5]
+
+![svnbrowserepo][6]
 
 ![svnlog][1]
 
@@ -98,8 +101,11 @@ Run from vim commandline
 1. At .vimrc addd  `let g:svnj_allow_leader_mappings=1`
 
     For more info run at command line `:help svnj-mappings`
-
+    
+[5]: http://i.imgur.com/Vl9pmoI.png
+[6]: http://i.imgur.com/GplIbo2.png
 [1]: http://i.imgur.com/oY6E2kP.png
 [2]: http://i.imgur.com/I69Mny2.png
 [3]: http://i.imgur.com/QskUigu.png
 [4]: http://i.imgur.com/GTBhjVT.png
+
