@@ -9,34 +9,40 @@
 " =============================================================================
 
 "autoload/winj.vim {{{1
-"
 "vars "{{{2
 let s:jwinname = 'svnj_window'
 let s:jwinnr = -1
-let [s:winjhi, s:svnjhl] = ['%#LineNr#', "Question"]
-
-let [s:leave, s:stay] = [0, 1]
-let [b:curops, b:cdict] = [{}, {}]
+"let [s:winjhi, s:svnjhl] = ['%#LineNr#', "Question"]
+let [s:winjhi, s:svnjhl] = [g:svnj_custom_statusbar_title, g:svnj_custom_statusbar_hl]
 let [b:clines, b:flines] = [[], []]
 let [b:slst,  s:fregex] = ["", ""]
 "2}}}
 
 "win handlers {{{2
 fun! winj#JWindow()
+    let s:fregex = ""
     call s:closeMe()
     let s:jwinnr = bufwinnr(s:jwinname)
     silent! exe  s:jwinnr < 0 ? 'botright new ' .
                 \ fnameescape(s:jwinname) : s:jwinnr . 'wincmd w'
     setl buftype=nowrite bufhidden=wipe nobuflisted
-    setl noswapfile nowrap nonumber cul nomodeline nomore nospell
+    setl noswapfile nowrap nonumber cul nocuc nomodeline nomore nospell
     autocmd VimResized svnj_window call s:fakeKeys()
     let s:jwinnr = bufwinnr(s:jwinname)
 endf
 
 fun! s:fakeKeys()
-    "let the getchar get a break with a key that is
-    "not handled
+    "let the getchar get a break with a key that is not handled
     call feedkeys("\<Left>")
+    redraw!
+endf
+
+fun! s:setup()
+    let [mstart, mend, menusyntax] = svnj#utils#getMenuSyn()
+    let [estart, eend, errsyntax] = svnj#utils#getErrSyn()
+    exec errsyntax | exec  menusyntax
+    exec 'hi link SVNError ' . g:svnj_custom_error_color
+    exec 'hi link SVNMenu ' . g:svnj_custom_menu_color
 endf
 
 fun! s:closeMe()
@@ -51,151 +57,126 @@ endf
 
 "populate {{{2
 fun! winj#populateJWindow(cdict)
-    call winj#JWindow()
-    unlet! b:cdict
-    let b:cdict= a:cdict
-    silent! exe s:jwinnr . 'wincmd w'
-    if has_key(b:cdict, "setup")
-        call call(b:cdict.setup, [])
-    endif
-    call s:populate("")
-    call s:prompt("")
+    try 
+        call winj#JWindow()
+        silent! exe s:jwinnr . 'wincmd w'
+        call s:setup()
+        call winj#populate(a:cdict) | call s:prompt()
+    catch | call svnj#utils#dbgHld("populateJWindow", v:exception) | endt
 endf
 
-fun! s:populate(fltr)
+fun! winj#populate(cdict)
     silent! exe s:jwinnr . 'wincmd w'
+    let s:cdict = a:cdict
     setl modifiable
     exec 'normal! ggdG'
-    let linenum = 1
-    let [cnt, scnt] = [0, 0]
-    let [s:theops, b:curops] = [{}, {}]
+    let linenum = 0
     let b:clines = []
 
     try
-        for thedict in b:cdict.getEntries()
-            let[tcnt, tscnt, tlines] = thedict.format(a:fltr)
-            let cnt = cnt + tcnt
-            let scnt = scnt + tscnt
-            call extend(b:clines, tlines)
-            if has_key(thedict, 'ops') && tscnt > 0
-                for key in keys(thedict.contents)
-                    for opkey in keys(thedict.ops)
-                        let subdict = { opkey : thedict.ops[opkey].callback}
-                        call extend(b:curops, { opkey : thedict.ops[opkey].descr})
-                        if has_key(s:theops, key)
-                            call extend(s:theops[key], subdict)
-                        else
-                            let s:theops[key] = subdict
-                        endif
-                    endfor
-                endfor
-            endif
-        endfor
-    catch
-        echo v:exception
-    endtry
-    call setline(1, b:clines)
-    let linenum = linenum + len(b:clines)
+        let [b:clines, displaylines] = s:cdict.lines()
+        call setline(1, displaylines)
+    catch | call svnj#utils#dbgHld("At populate", v:exception) | endt
+    
+    let linenum = line('$') == 1 ? 1 : line('$') + 1 
+    if s:cdict.hasError()
+        call setline(linenum, s:cdict.error.line)
+    endif
 
-    if b:cdict.hasError()
-        call setline(linenum, b:cdict.error.line)
-        let linenum = linenum + 1
-    endif
-    if linenum ==# 1
-        call setline(linenum, '--ERROR-- No contents')
-    endif
-    silent! exe 'resize ' . line('$')
-    call s:updateStatus((scnt) . '/'. cnt)
-    setl nomodifiable
-    redr!
+    if linenum == 0 | call s:setNoContents(1) | en
+    silent! exe 'resize ' . line('$') + 40
+    let s:fregex = ""
+    call s:updateStatus((len(displaylines)) . '/'. len(b:clines))
+    call s:resizewin()
+    call s:dohighlights("")
+    setl nomodifiable | redr!
 endf
 
-fun! s:repopulate(fltr)
-    call clearmatches()
+fun! s:resizewin()
     silent! exe s:jwinnr . 'wincmd w'
-    setl modifiable
-    exec 'normal! ggdG'
-    let tcnt = len(b:clines)
-    try
-        "let flines = filter(copy(b:clines),
-        "            \ 'strlen(a:fltr) > 0 ? stridx(v:val, a:fltr) >= 0 : 1')
-        call s:filterContents(b:clines, a:fltr, g:svnj_fuzzy_search_result_max)
-        if len(b:flines) <= 0
-            call setline(1, '--ERROR-- No contents')
-        else
-            call setline(1, b:flines)
-        endif
-        call s:dohighlights(a:fltr)
+    silent! exe 'resize ' . (line('$') < g:svnj_window_max_size ? line('$') :
+                \ g:svnj_window_max_size)
+    silent! exe 'normal! gg'
+endf
 
-        silent! exe 'resize ' . line('$')
-        call s:updateStatus(len(b:flines) . '/'. tcnt)
+fun! s:setNoContents(linenum)
+    call setline(a:linenum, '--ERROR-- No contents')
+endf
+
+fun! s:repopulate(fltr, incr)
+    try
+        if len(a:fltr)> 1 && a:incr && len(b:flines) == 0 | return | endif
         let b:flines = []
-    catch
-        echo v:exception
-        let x = input("At repopulate")
-    endtry
-    setl nomod
-    redr!
+        silent! exe s:jwinnr . 'wincmd w'
+        setl modifiable | exec 'normal! ggdG'
+        call s:filterContents(b:clines, a:fltr, g:svnj_fuzzy_search_result_max)
+
+        if len(b:flines) <= 0 | call s:setNoContents(1)
+        else | call setline(1, b:flines) | en
+
+        let tcnt = len(b:clines)
+        call s:updateStatus(len(b:flines) . '/'. tcnt)
+        call s:dohighlights(a:fltr)
+        call s:resizewin()
+    catch | call svnj#utils#dbgHld("At repopulate", v:exception) | endt
+    setl nomodifiable | redr!
 endf
 "2}}}
 
 "prompt {{{2
-fun! s:prompt(fltr)
-    let fltr = a:fltr
-    while 1
+fun! s:prompt()
+    let fltr = ""
+    let dohl = 1
+    while !svnj#doexit()
         try
-            redr
-            echohl Title | echon "filter : " | echohl None | echon fltr
+            redr | exec 'echohl ' . g:svnj_custom_prompt_color
+            echon "filter : " | echohl None | echon fltr
+            "if dohl | call s:dohighlights(fltr) | en
+            let dohl = 1
             let nr = getchar()
             let chr = !type(nr) ? nr2char(nr) : nr
 
-
-            call s:dohighlights(fltr)
-            let curbufname = bufname("%")
-            if s:jwinname !=# curbufname
-                call s:closeMe()
-                break
-            endif
-
-            let cline = getline('.')
-            let key = split(cline, ':')[0]
-
-            let opsd = get(s:theops, key, {})
+            let key = s:extractkey()
+            let opsd = s:cdict.getOps(key)
             if len(opsd) > 0 && has_key(opsd, chr)
-                let cback = opsd[chr]
-                let result = call(cback, [b:cdict, key])
-                if result == 0
-                    break
-                elseif result == 1
-                    call s:dohighlights(fltr)
-                    continue
-                elseif result == 2
-                    redr!
-                    continue
-                endif
+                try
+                    let fltr = ""
+                    let args = [s:cdict, key]
+                    call extend(args, opsd[chr][2:])
+                    call call(opsd[chr][1], args) | redr! | cont
+                catch 
+                    call svnj#utils#dbgHld("At prompt", v:exception)
+                    call svnj#utils#showErrorConsole("Oops error ") | cont
+                endtry
             endif
 
             if chr ==# "\<BS>" || chr ==# '\<Del>'
-                if strlen(fltr) > 0
-                    let fltr = strpart(fltr, 0, strlen(fltr) - 1)
-                    call s:repopulate(fltr)
-                endif
+                if len(fltr) <= 0  | cont | en
+                let fltr = fltr[:-2]
+                call s:repopulate(fltr, 0)
             elseif chr == "\<Esc>"
-                call s:closeMe()
-                break
+                call svnj#prepexit()
+                call s:closeMe() | break
             elseif nr >=# 0x20
                 if len(fltr)<=90
                     let fltr = fltr . chr
-                    call s:repopulate(fltr)
+                    call s:repopulate(fltr, 1)
                 endif
-            else
-                exec "normal! ". chr
+            else | let dohl = 0 | exec "normal!" . chr
             endif
-        catch
-            echo v:exception
-        endtry
+        catch | call svnj#utils#dbgHld("At prompt", v:exception) | endt
     endwhile
     exe 'echo ""' |  redr
+    call s:closeMe()
+endf
+
+fun! s:extractkey()
+    let tokens = split(getline('.'), ':')
+    if len(tokens) > 0 | retu tokens[0] | en
+    return ""
+    "let key = matchstr(getline('.'), g:svnj_key_patt)
+    "let key = matchstr(key, '\v\c\d+')
+    "return key
 endf
 "2}}}
 
@@ -204,90 +185,85 @@ fun! s:dohighlights(fltr)
      try
         silent! exe s:jwinnr . 'wincmd w'
         call clearmatches()
-        if len(b:cdict.selectd)
-            let patt = join(map(copy(
-                        \ keys(b:cdict.selectd)), '"\\<" . v:val . ""' ), "\\|")
+        if s:fregex != "" | call matchadd(g:svnj_custom_fuzzy_match_hl, '\v\c' . s:fregex) | en
+        if len(svnj#select#dict()) && !g:svnj_signs
+            let patt = join(map(copy(keys(svnj#select#dict())),
+                        \ '"\\<" . v:val . ": " . ""' ), "\\|")
             let patt = "/\\(" . patt . "\\)/"
             exec 'match ' . s:svnjhl . ' ' . patt
         endif
-        
-        if s:fregex != ""    
-            call matchadd('Directory', '\v\c' . s:fregex)
-        endif
-    catch
-        echo v:exception
-    endtry
+        call svnj#select#resign(s:cdict)
+    catch | call svnj#utils#dbgHld("At dohighlights", v:exception) | endt
+endf
+
+fun! s:dohicurline()
+    try
+        "let key = split(getline('.'), ':')[0]
+        let key = matchstr(getline('.'), g:svnj_key_patt)
+        if key != "" | call matchadd('Directory', '\v\c^' . key) | en
+    catch | call svnj#utils#dbgHld("At dohicurline", v:exception) | endt
 endf
 "2}}}
 
 "open funs {{{2
-fun! winj#diffCurFileWith(revision, svnurl)
-    call s:closeMe()
-    let filetype=&ft
-    let revision = ""
-    if len(a:revision) > 0
-        let revision = " -" . a:revision
-    endif
-    let cmd = "%!svn cat " . revision . ' '. a:svnurl
-    diffthis | exec 'vnew '. a:revision | exec cmd |  diffthis
-    exe "setl bt=nofile bh=wipe nobl noswf ro ft=" . filetype
-    return 0
-endf
-
 fun! winj#blame(svnurl, filepath)
     call s:closeMe()
     let filetype=&ft
-    if a:filepath !=# ''
-        let cmd="%!svn blame " . a:filepath
-    endif
+    let cmd="%!svn blame " . a:filepath
     let newfile = 'vnew '
     exec newfile | exec cmd
     exe "setl bt=nofile bh=wipe nobl noswf ro ft=" . filetype
     return 0
 endf
 
-fun! winj#openGivenFile(thefile)
-    silent! call s:closeMe()
-    if filereadable(a:thefile) || isdirectory(a:thefile)
-        silent! exe 'e' a:thefile
-        return s:leave
-    endif
-    return s:leave
-endf
-
-fun! winj#openFileRevision(revision, url)
+fun! winj#diffFile(revision, svnurl)
     call s:closeMe()
     let filetype=&ft
-    let cmd="%!svn cat -" . a:revision . ' ' . a:url
-    let new_tab = ' e ' . a:revision
-    exec new_tab | exec cmd
-    exe "setl nomod noswf ft=" . filetype
-    return s:leave
-endf
-
-fun! winj#openFile(revision, url)
-    call s:closeMe()
-    let filetype=&ft
-    let cmd="%!svn cat -" . a:revision . ' ' . a:url
-    let new_file = 'vnew '. a:revision
-    exec new_file | exec cmd
+    let revision = len(a:revision) > 0 ? " -" . a:revision : ""
+    let cmd = "%!svn cat " . revision . ' '. a:svnurl
+    diffthis | exec 'vnew '. a:revision | exec cmd |  diffthis
     exe "setl bt=nofile bh=wipe nobl noswf ro ft=" . filetype
-    return s:leave
+    return 0
+endf
+
+fun! winj#openRepoFileVS(revision, url)
+    call s:closeMe()
+    let [revision, fname] = s:rev_fname(a:revision, a:url)
+    let cmd="%!svn cat " . revision . ' ' . a:url
+    exec 'vnew ' . fname | exec cmd
+    exe "setl bt=nofile bh=wipe nobl noswf ro"
+    return 0
+endf
+
+fun! winj#newBufOpen(revision, url)
+    call s:closeMe()
+    let [revision, fname] = s:rev_fname(a:revision, a:url)
+    if filereadable(fname)
+        let cmd = 'e ' . fname 
+        silent! exe cmd |  retu 0
+    else
+        let cmd="%!svn cat " . revision . ' ' . a:url
+        exe 'e ' . fname | exe cmd | retu 0
+    endif
+    return 0
+endf
+
+fun! s:rev_fname(revision, url)
+    let revision = a:revision == "" ? "" : " -" .  a:revision 
+    let fname = a:revision == "" ? a:url : a:url . "@" .  a:revision 
+    return [revision, fname]
 endf
 "2}}}
 
 "stl update {{{2
 fu! s:updateStatus(filecount)
+    let fcount = a:filecount
     echo " "
-    let ops=""
-    for [key, descr] in items(b:curops)
-        let ops = ops . descr . ' '
-    endfor
-    if strlen(a:filecount) > 0
-        let &l:stl = s:winjhi.b:cdict.title.'%= ' . '%#Search# ' . ops . 
-                    \ s:winjhi . ' Entries:' . a:filecount
+    if strlen(fcount) > 0
+        let &l:stl = s:winjhi.s:cdict.title.'%= ' . '%#Search# ' . s:cdict.opdsc . 
+                    \ s:winjhi . ' Entries:' . fcount
     else
-        let &l:stl = s:winjhi.b:cdict.title.s:winjhi . '%= '. ops .
+        let &l:stl = s:winjhi.s:cdict.title.s:winjhi . '%= '. s:cdict.opdsc .
     endif
     redraws
 endf
@@ -337,18 +313,12 @@ fun! s:filterContents(items, str, limit)
     let wchars = ['*', '\', '~', '@', '%', '(', ')', '[', ']', '{', '}', "\'"] 
 
     let str = ""
-    for i in range(0, len(a:str))
-        if index(wchars, a:str[i]) < 0 
-            let str = str . a:str[i]
-        endif
+    for i in range(0, len(a:str)) "TODO convert to substitute regex :(
+        let str = index(wchars, a:str[i]) < 0 ?  str . a:str[i] : str
     endfor
 
-    if str == ''
-        let b:flines=a:items
-        return
-    endif
-
-    if (g:svnj_fuzzy_search == 1) && has('python') 
+    if str == '' | let b:flines=a:items | return | en
+    if (g:svnj_fuzzy_search == 1)
         call s:pyMatch(a:items, str, a:limit)
         let b:flines = split(b:slst, "\n")
         unlet! b:slst

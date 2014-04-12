@@ -1,6 +1,6 @@
 " =============================================================================
 " File:         plugin/svnj.vim
-" Description:  Simple plugin for svn
+" Description:  Plugin for svn
 " Author:       Juneed Ahamed
 " License:      Distributed under the same terms as Vim itself. See :help license.
 " =============================================================================
@@ -15,19 +15,23 @@ let g:loaded_svnj = 1
 "}}}
 
 "command mappings "{{{
-com! SVNCommits call svnj#SVNCommits()
-com! SVNLog     call svnj#SVNLog()
 com! SVNDiff    call svnj#SVNDiff()
 com! SVNBlame   call svnj#SVNBlame()
+com! SVNCommits call svnj#cmmit#SVNCommits()
+com! SVNLog     call svnj#log#SVNLog()
 
-com! -n=? SVNStatus  call svnj#SVNStatus(<f-args>)
-com! -n=? -com=dir SVNList    call svnj#SVNList(<q-args>)
-com! -n=? -com=dir SVNListRec call svnj#SVNListRec(<q-args>)
+com! SVNBrowse call svnj#brwsr#SVNBrowse()
+com! SVNBrowseMyList call svnj#brwsr#SVNBrowseMyList()
+com! SVNBrowseBookMarks call svnj#brwsr#SVNBrowseMarked()
+
+com! -n=? SVNStatus  call svnj#status#SVNStatus(<f-args>)
+com! -n=? -com=dir SVNBrowseRepo call svnj#brwsr#SVNBrowseRepo(<q-args>)
+com! -n=? -com=dir SVNBrowseWorkingCopy call svnj#brwsr#SVNBrowseWC(<q-args>)
 "}}}
 
 "leader mappings "{{{
 if exists('g:svnj_allow_leader_mappings') && g:svnj_allow_leader_mappings == 1
-    map <silent> <leader>b :SVNBlame<CR>
+    map <silent> <leader>B :SVNBlame<CR>
     map <silent> <leader>c :SVNCommits<CR>
     map <silent> <leader>d :SVNDiff<CR>
     map <silent> <leader>s :SVNStatus<CR>  
@@ -35,8 +39,12 @@ if exists('g:svnj_allow_leader_mappings') && g:svnj_allow_leader_mappings == 1
     map <silent> <leader>sq :SVNStatus u q<CR>
     map <silent> <leader>sp :SVNStatus u py<CR>
     map <silent> <leader>l :SVNLog<CR>
-    map <silent> <leader>L :SVNList<CR>
-    map <silent> <leader>Lr :SVNListRec<CR>
+    map <silent> <leader>b :SVNBrowse<CR>
+    map <silent> <leader>bl :SVNBrowseMyList<CR>
+    map <silent> <leader>br :SVNBrowseRepo<CR>
+    map <silent> <leader>bw :SVNBrowseWorkingCopy<CR>
+    map <silent> <leader>bb :SVNBrowseBookMarks<CR>
+    map <silent> <leader>bm :SVNBrowse<CR>
     map <silent> <leader>q :diffoff! <CR> :q<CR>
 endif
 "}}}
