@@ -1,18 +1,20 @@
 #svnj.vim
 VIM (VIM 7 and up) plugin for subversion (svn)
+Support for browsing the repository, working copy, bookmarks.
 
 ##Screen shots
-![svnbrowse][5]
 
-![svnbrowserepo][6]
+![svnbrowse][1]
 
-![svnlog][1]
+![svnbrowserepo][2]
 
-![svnstatus][2]
+![svnlog][3]
 
-![svnlog2][3]
+![svnstatus][4]
 
-![svnlogbranches][4]
+![svnlog2][5]
+
+![svnlogbranches][6]
 
 ##Supported OS
 MacOSX/Linux
@@ -22,6 +24,30 @@ MacOSX/Linux
  **svn log**, **svn status**, **svn diff**, **svn blame**, **svn list**
 
 ##Features
+* <b>SVNBrowse</b>
+
+    Browse the svn repository, working copy files from within vim. Provision to 
+    bookmark files/directories for current vim session or provide permanent 
+    bookmarks/favorites from .vimrc. Ability to open/openall/diff the browsed files.
+    
+    Available options for browsing are
+        - SVNBrowse
+        - SVNBrowseRepo
+        - SVNBrowseWorkingCopy
+        - SVNBrowseMyList
+        - SVNBrowseBookMarks
+
+    Some of the operations supported are
+        - Open directory/files
+        - Recursive list directories
+        - Navigate up one dir
+        - Go to Start/Top
+        - Open all files
+        - Display log of a file/dir
+        - Diff the current file with the file in buffer
+        - Mark for open/diff
+        - Bookmark file for current session
+    
 * <b>SVNLog</b>
 
 	Get the revisions of file in buffer. With the list of revisions from the output.
@@ -102,10 +128,10 @@ Run from vim commandline
 
     For more info run at command line `:help svnj-mappings`
     
-[5]: http://i.imgur.com/Vl9pmoI.png
-[6]: http://i.imgur.com/GplIbo2.png
-[1]: http://i.imgur.com/oY6E2kP.png
-[2]: http://i.imgur.com/I69Mny2.png
-[3]: http://i.imgur.com/QskUigu.png
-[4]: http://i.imgur.com/GTBhjVT.png
+[1]: http://i.imgur.com/GplIbo2.png
+[2]: http://i.imgur.com/Vl9pmoI.png
+[3]: http://i.imgur.com/oY6E2kP.png
+[4]: http://i.imgur.com/I69Mny2.png
+[5]: http://i.imgur.com/QskUigu.png
+[6]: http://i.imgur.com/GTBhjVT.png
 
