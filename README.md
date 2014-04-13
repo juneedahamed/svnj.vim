@@ -31,6 +31,7 @@ MacOSX/Linux
     bookmarks/favorites from .vimrc. Ability to open/openall/diff the browsed files.
     
     Available options for browsing are
+    
         - SVNBrowse
         - SVNBrowseRepo
         - SVNBrowseWorkingCopy
@@ -38,6 +39,7 @@ MacOSX/Linux
         - SVNBrowseBookMarks
 
     Some of the operations supported are
+    
         - Open directory/files
         - Recursive list directories
         - Navigate up one dir
