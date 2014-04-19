@@ -4,6 +4,7 @@
 " Author:       Juneed Ahamed
 "===============================================================================
 
+"svnj/status.vim {{{1
 "vars {{{2
 if !exists('g:svnj_glb_init') | let g:svnj_glb_init = svnjglobals#init() | en
 let [s:selectkey, s:selectdscr] = svnj#utils#selkey()
@@ -13,7 +14,8 @@ let [s:selectkey, s:selectdscr] = svnj#utils#selkey()
 fun! svnj#status#statusops()
    return {
                \ "\<Enter>"  : ['Ent:Open', 'svnj#gopshdlr#openFile', 'winj#newBufOpen'],
-               \ "\<C-o>"    : ['C-o:OpenAll', 'svnj#gopshdlr#openAllFiles', 'winj#newBufOpen'],
+               \ "\<C-o>"    : ['C-o:OpenAll', 'svnj#gopshdlr#openFltrdFiles', 'winj#newBufOpen'],
+               \ "\<C-i>"    : ['C-i:info', 'svnj#gopshdlr#info'],
                \ "\<C-w>"    : ['C-w:wrap!', 'svnj#gopshdlr#toggleWrap'],
                 \ s:selectkey  : [s:selectdscr, 'svnj#gopshdlr#select'],
                \ }
@@ -71,4 +73,4 @@ fun! s:argsSVNStatus(choice, cwd)
     return svncmd
 endf
 "2}}}
-
+"1}}}

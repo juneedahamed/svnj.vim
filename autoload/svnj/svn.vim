@@ -6,6 +6,11 @@
 
 "SVN command parsers {{{1
 
+fun! svnj#svn#info(url)
+    let svncmd = 'svn info --non-interactive ' . a:url
+    return svnj#utils#execShellCmd(svncmd)
+endf
+
 fun! svnj#svn#url(absfpath) "{{{2
     let svncmd = 'svn info --non-interactive ' . a:absfpath . ' | grep URL: '
     let svnout = svnj#utils#execShellCmd(svncmd)
@@ -25,6 +30,18 @@ fun! svnj#svn#getMeta(fileabspath) "{{{2
     return metad
 endf
 "2}}}
+
+fun! svnj#svn#getMetaFS(fileabspath) "{{{2
+    let url = expand(a:fileabspath)
+    let metad = {}
+    let metad.origurl = url
+    let metad.url = url
+    let metad.fpath = a:fileabspath == "" ? getcwd() : a:fileabspath
+    let metad.wrd="/"
+    return metad
+endf
+"2}}}
+
 
 fun! svnj#svn#blankMeta() "{{{2
     let metad = {}
@@ -133,12 +150,27 @@ fun! svnj#svn#isBranch(URL) "{{{2
 endf
 "2}}}
 
+fun! svnj#svn#isWCDir() "{{{2
+    let svncmd = 'svn info --non-interactive ' . getcwd()
+    try
+        let shellout = svnj#utils#execShellCmd(svncmd)
+    catch | retu 0 | endtry
+    return 1
+endf
+"2}}}
+
 "svn list {{{2
 fun! svnj#svn#list(url, rec, ignore_dirs)
-    let svncmd = 'svn list ' . (a:rec ? '-R --non-interactive ' : '--non-interactive ') . a:url
-    let shellout = svnj#utils#execShellCmd(svncmd)
-    let shelloutlist = split(shellout, '\n')
     let entries = []
+    if a:rec
+        let shelloutlist = s:globsvnrec(a:url)
+    else
+        let svncmd = 'svn list --non-interactive ' . a:url
+        let shellout = svnj#utils#execShellCmd(svncmd)
+        let shelloutlist = split(shellout, '\n')
+        unlet! shellout
+    endif
+
     for line in  shelloutlist
         if len(matchstr(line, g:p_ign_fpat)) != 0 | con | en
         if a:ignore_dirs == 1 && isdirectory(line) | con | en
@@ -146,9 +178,46 @@ fun! svnj#svn#list(url, rec, ignore_dirs)
         let listentryd.line = line
         call add(entries, listentryd)
     endfor
+    unlet! shelloutlist
     return entries
 endf
+
+fun! s:globsvnrec(url)
+    let leaf = substitute(a:url, svnj#utils#getparent(a:url), "", "")
+    let burl = a:url
+
+    let [files, tdirs] = [[], [""]]
+    while len(files) < g:svnj_browse_repo_max_files_cnt && len(tdirs) > 0
+        try
+            let curdir = remove(tdirs, 0)
+            call svnj#utils#showConsoleMsg("Fetching files from repo : " . curdir, 0)
+            let svncmd = 'svn list --non-interactive ' .
+                        \ svnj#utils#joinPath(burl, curdir)
+            let flist = split(svnj#utils#execShellCmd(svncmd), "\n")
+            let [tfiles, tdirs2] =  s:filedirs(curdir, flist)
+            call extend(files, tfiles)
+            call extend(files, tdirs2)
+            call extend(tdirs, tdirs2)
+            unlet! flist tfiles tdirs2 
+        catch
+            "call svnj#utils#dbgHld("At globsvnrec", v:exception)
+        endt
+    endwhile
+    unlet! tdirs
+    return files
+endf
+
+fun! s:filedirs(curdir, flist)
+    let [files, dirs] = [[], []]
+    for entry in a:flist
+        if len(matchstr(entry, g:p_ign_fpat)) != 0 | con | en
+        call call('add', [svnj#utils#isSvnDirReg(entry) ? dirs : files, 
+                    \ svnj#utils#joinPath(a:curdir,entry)])
+    endfor
+    return [files, dirs]
+endf
 "2}}}
+
 
 "svnLogs {{{2
 fun! svnj#svn#logs(svnurl)
@@ -156,6 +225,7 @@ fun! svnj#svn#logs(svnurl)
                 \ ' ' . a:svnurl
     let shellout = svnj#utils#execShellCmd(svncmd)
     let shellist = split(shellout, '\n')
+    unlet! shellout
     let logentries = []
     try
         for idx in range(0,  len(shellist)-1)
@@ -184,6 +254,7 @@ fun! svnj#svn#logs(svnurl)
                 let idx = idx + 1
             endif
         endfor
+        unlet! shellist
     catch
     endtry
     return logentries
@@ -193,6 +264,7 @@ endf
 fun! svnj#svn#summary(svncmd, meta) "{{{2
     let shellout = svnj#utils#execShellCmd(a:svncmd)
     let shelloutlist = split(shellout, '\n')
+    unlet! shellout
     let statuslist = []
     for line in shelloutlist
         let tokens = split(line)
@@ -203,6 +275,7 @@ fun! svnj#svn#summary(svncmd, meta) "{{{2
         let statusentryd.line = line
         call add(statuslist, statusentryd)
     endfor
+    unlet! shelloutlist
     return statuslist
 endf
 "2}}}

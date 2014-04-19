@@ -95,7 +95,7 @@ fun! s:showCommits(dict, svncmd, title)
     if empty(slist)
         call svnj#dict#addErrUp(sdict, 'No commits found ..' , '' )
     else
-        let ops = svnj#status#statusops() | call extend(ops, svnj#utils#upop())
+        let ops = svnj#status#statusops() | call extend(ops, svnj#utils#topop())
         call svnj#dict#addEntries(sdict, 'statusd', slist, ops)
     endif
     call winj#populate(sdict)

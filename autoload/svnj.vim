@@ -11,8 +11,6 @@ if !exists('g:svnj_glb_init') | let g:svnj_glb_init = svnjglobals#init() | en
 "2}}}
 
 "script vars {{{2
-let s:keyhidesyn = 'syn match SVNHide ' . '/:\d+:/'
-"exe "highlight SignColumn guibg=black"
 let s:endnow = 0
 "2}}}
 

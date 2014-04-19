@@ -8,7 +8,7 @@
 fun! svnjglobals#init()
     "global customize {{{3
     fun! s:get_global_hl(varname, defval)
-        if !exists(a:varname) || !hlexists(g:svnj_custom_fuzzy_match_hl)
+        if !exists(a:varname) || !hlexists(eval(a:varname))
             return a:defval
         else
             return eval(a:varname)
@@ -19,10 +19,12 @@ fun! svnjglobals#init()
     let g:svnj_custom_menu_color = s:get_global_hl('g:svnj_custom_menu_color', 'MoreMsg')
     let g:svnj_custom_error_color = s:get_global_hl('g:svnj_custom_error_color', 'Error')
     let g:svnj_custom_prompt_color = s:get_global_hl('g:svnj_custom_prompt_color', 'Title')
-    let g:svnj_custom_statusbar_title = s:get_global_hl('g:svnj_custom_statusbar_title', 'LineNr')
     let g:svnj_custom_statusbar_hl = s:get_global_hl('g:svnj_custom_statusbar_hl', 'Question')
     let g:svnj_custom_statusbar_title = s:get_global_hl('g:svnj_custom_statusbar_title', 'LineNr')
     let g:svnj_custom_statusbar_title = '%#' . g:svnj_custom_statusbar_title .'#'
+    let g:svnj_custom_statusbar_ops_hl = s:get_global_hl('g:svnj_custom_statusbar_ops_hl', 'Search')
+    let g:svnj_custom_statusbar_sel_hl = s:get_global_hl('g:svnj_custom_statusbar_sel_hl', 'Question')
+    let g:svnj_custom_statusbar_ops_hide = get(g:, 'svnj_custom_statusbar_ops_hide', 0)
     "3}}}
 
     "vars {{{3
@@ -34,6 +36,8 @@ fun! svnjglobals#init()
     let g:svnj_find_files = get(g:, 'svnj_find_files', 1)
     let g:svnj_warn_log = get(g:, 'svnj_warn_log', 1)
     let g:svnj_enable_debug = get(g:, 'svnj_enable_debug', 0)
+    let g:svnj_browse_max_files_cnt= get(g:, 'svnj_browse_max_files_cnt', 10000)
+    let g:svnj_browse_repo_max_files_cnt= get(g:, 'svnj_browse_repo_max_files_cnt', 1000)
 
     if !exists('g:svnj_signs') | let g:svnj_signs = 1 | en
     if !has('signs') | let g:svnj_signs = 0 | en
@@ -77,8 +81,12 @@ fun! svnjglobals#init()
     let g:p_turl = s:initPathVariables('g:svnj_trunk_url')
     let g:p_wcrp = s:initPathVariables('g:svnj_working_copy_root_path')
 
-    let ign_files = ['.pyc', '.bin', '.zip', '.egg', '.so', '.rpd', '.git', '.png', '.psd', 
-                \ '.gif', '.jpg', '.ico', '.pdf']
+    let ign_files = ['\.bin', '\.zip', '\.bz2', '\.tar', '\.gz', 
+                \ '\.egg', '\.pyc',  
+                \ '\.so', '\.git',
+                \ '\.png', '\.gif', '\.jpg', '\.ico', '\.bmp', 
+                \ '\.psd', '\.rpd', '\.pdf']
+
     if exists('g:svnj_ignore_files') && type(g:svnj_ignore_files) == type([])
         for ig in g:svnj_ignore_files | call add(ign_files, ig) | endfor
     endif
@@ -93,6 +101,7 @@ fun! svnjglobals#init()
     en
     if g:svnj_signs | sign define svnjbook text=b> texthl=Constant linehl=Constant
     en
+    let g:svnj_undol_save = &undolevels
     return 1
     "3}}}
 endf

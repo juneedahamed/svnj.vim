@@ -26,7 +26,8 @@ com! SVNBrowseBookMarks call svnj#brwsr#SVNBrowseMarked()
 
 com! -n=? SVNStatus  call svnj#status#SVNStatus(<f-args>)
 com! -n=? -com=dir SVNBrowseRepo call svnj#brwsr#SVNBrowseRepo(<q-args>)
-com! -n=? -com=dir SVNBrowseWorkingCopy call svnj#brwsr#SVNBrowseWC(<q-args>)
+com! -n=? -com=dir SVNBrowseWorkingCopy call svnj#brwsr#SVNBrowseWC(0, <q-args>)
+com! -n=? -com=dir SVNBrowseWorkingCopyRec call svnj#brwsr#SVNBrowseWC(1, <q-args>)
 "}}}
 
 "leader mappings "{{{

@@ -54,6 +54,7 @@ COMMANDS                                                         *svnj-commands*
   |Enter|      : Open file under cursor and those marked
   |Ctrl-space| : mark the file for open
   |Ctrl-o|     : open all listed file
+  |Ctrl-i|     : SVN info 
   |Ctrl-w|     : toggle the wrap settings
 
 :SVNLog                                                              *SVNLog*
@@ -97,7 +98,7 @@ COMMANDS                                                         *svnj-commands*
 
   Options/Menu:~
     1. Repository - Browses Repository
-    2. Working copy - This is the working copy. local files. Vim should launched
+    2. Working copy - This is the working copy. local files. Vim should be launched
                       from the working copy directory.
     3. MyList - The list provided by g:svnj_browse_mylist (use as permanent bookmarks)
     4. BookMarks - Bookmarks with Ctrl-b command. This is persisted only for the
@@ -127,12 +128,14 @@ COMMANDS                                                         *svnj-commands*
               Once the log is displayed can Navigate back as |Ctrl-u|
               All operations supported by |SVNLog| are supported along with 
               Ctrl-u  to navigate back
+  |Ctrl-i|  : SVN info 
   |Ctrl-space| : Mark the file for open
 
 
 :SVNBrowseWorkingCopy                                     *SVNBrowseWorkingCopy*
 
   Browse the local filesystem under SVN, the working copy files with this command.
+  Now works for local file system not under svn.
   Command takes in the following arguments.
 
   1. noarguments : Starts at the current directory, the current directory
@@ -156,6 +159,7 @@ COMMANDS                                                         *svnj-commands*
               Once the log is displayed can Navigate back as |Ctrl-u|
               All operations supported by |SVNLog| are supported along with 
               Ctrl-u  to navigate back
+  |Ctrl-i|  : SVN info 
   |Ctrl-space| : Mark the file for open
 
 :SVNBrowseMyList                                                *SVNBrowseMyList*
@@ -179,6 +183,7 @@ COMMANDS                                                         *svnj-commands*
               Once the log is displayed can Navigate back as |Ctrl-u|
               All operations supported by |SVNLog| are supported along with 
               Ctrl-u  to navigate back
+  |Ctrl-i|  : SVN info 
   |Ctrl-space| : Mark the file for open
 
 :SVNBrowseBookMarks                                            *SVNBrowseBookMarks*
@@ -421,8 +426,25 @@ This option is used to color syntax the status bar title background
 example at .vimrc code >
     let g:svnj_custom_statusbar_title = 'LineNr' 
 <
+                                                
+                                                *'g:svnj_custom_statusbar_ops_hl'*
+This option is used to color syntax the status bar supported operations display
+example at .vimrc code >
+    let g:svnj_custom_statusbar_ops_hl = 'Character' 
+<
 
+                                            *'g:svnj_custom_statusbar_ops_hide'*
+This option is used to show/hide the status bar supported operations display on
+the statusline. The default is 1, which shows the supported operations and keys.
+To hide this at .vimrc code >
+    let g:svnj_custom_statusbar_ops_hide = 1
+<
 
+                                            *'g:svnj_custom_statusbar_sel_hl'*
+This option is used to color syntax the status bar selected/marked files count.
+Default is Character example at .vimrc code >
+    let g:svnj_custom_statusbar_ops_hl = 'Function' 
+<
 ================================================================================
 CHANGELOG                                           *svnj-changelog*
 
@@ -468,5 +490,34 @@ v0.4~
       Later navigating away from the path say going up the directory and recusrive list
       of contents donot highlights the line though remembers the marked file and open/diffs
       the file. (Will Fix later)
+
+v0.5~
+
+  FIXED:
+  + statusline getting disappeared in few scenarios 
+  
+  ENAHANCEMENTS:
+
+  + Added BrowseWorkingCopyRec
+     - This command recusrively lists file, avoids a few key strokes
+
+  + BrowseWorkingCopy[Rec] command now works for local files/directories also,
+     The svn commands like show logs will report error if the selected entry is not
+     an svn entity, Other operations like open should work
+
+  + Supported Ctrl-Enter for BrowseMenu on Repo and Workingcopy , saves again few keystorkes
+
+  + OpenAll [Ctrl-o ] operation in case of Browse, Status and Commits will honor the filter,
+    Files shown only on the buffer will be candidates to be opened
+
+  + Added Ctrl-i for browsed and stats file, this lists the svn info of file/dir
+
+  + Enhanced file fetcher, limits the depth/number of files fetched
+
+  + status line shows number for files selected/marked
+
+  + Added more customization options
+     g:svnj_custom_statusbar_ops_hl, g:svnj_custom_statusbar_ops_hide,
+     g:svnj_custom_statusbar_sel_hl
 ================================================================================
 vim:ft=help:et:ts=2:sw=2:sts=2:norl

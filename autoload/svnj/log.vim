@@ -95,9 +95,7 @@ endf
 
 "callbacks {{{2
 fun! svnj#log#browse(key)
-    let meta = svnj#svn#getMeta(getcwd())
-    call svnj#brwsr#Menu('winj#populate', meta)
-    return 1
+    return svnj#brwsr#Menu('winj#populate')
 endf
 
 fun! svnj#log#listFilesFrom(key)
@@ -145,7 +143,7 @@ fun! s:svnBranchURLFromBranch(bURL, tbname)
     let root = svnj#svn#branchRoot(a:bURL)
 
     "This check for filename selection
-    if !svnj#utils#isSvnDir(a:tbname)
+    if !svnj#utils#isSvnDirReg(a:tbname)
         let tryURL = root . a:tbname
         if svnj#svn#validURL(tryURL) | retu tryURL | en
     en
@@ -236,6 +234,7 @@ fun! s:findFile(pURL, tfile)
         call s:warnlog(tshellist, a:tfile, fname)
         let pat = ".*".fname
         let shellist = filter(tshellist, 'v:val =~ pat')
+        unlet! tshellist
 
         "If shell returned one file we found the required one
         if len(shellist) == 1 

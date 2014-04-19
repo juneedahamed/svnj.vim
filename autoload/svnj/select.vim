@@ -20,7 +20,7 @@ fun! svnj#select#add(key, line, path, revision)
     let s:selectd[a:key] = {'line': a:line, 'path': a:path,
                 \ 'revision': a:revision}
     call svnj#select#sign(a:key, 1)
-    return 1
+    return 2
 endf
 
 fun! svnj#select#remove(key)
@@ -38,7 +38,7 @@ endf
 fun! svnj#select#openFiles(callback, maxopen)
     let cnt = 0
     for [key, sdict] in items(s:selectd)
-        if svnj#utils#isSvnDir(sdict.path) | cont | en
+        if svnj#utils#isSvnDirReg(sdict.path) | cont | en
         let cnt += 1
         call call(a:callback, [sdict.revision, sdict.path])
         if cnt == a:maxopen | break | en
@@ -59,6 +59,7 @@ fun! svnj#select#book(url)
         let g:bmarks[a:url] = g:bmarkssid
         call s:signbmark(g:bmarkssid, 1)
     endif
+    return 2
 endf
 
 fun! svnj#select#booked()
@@ -98,23 +99,41 @@ fun! svnj#select#resign(dict)
 endf
     
 fun! s:resign(dict) 
-    let bdict = len(g:bmarks) > 0 ? svnj#dict#bmarkable(a:dict) : {}
-    let dobmrks = len(g:bmarks) < len(bdict) ? len(g:bmarks) : len(bdict)
+    let brwsd = has_key(a:dict, 'browsed')
+    let dobmrks = brwsd ? len(g:bmarks) : 0
     let dosel = len(s:selectd)
+
     if (dosel || dobmrks)
+        let selectpaths = []
+        for [key, dict] in items(s:selectd)
+            call add(selectpaths, dict.path)
+        endfor
         let scmdpost = ' name=svnjmark buffer=' . bufnr('%')
         let bcmdpost = ' name=svnjbook buffer=' . bufnr('%')
         let linenum = 1
         for line in getbufline(bufnr('%'), 1, 80)
-            let tkey = matchstr(line, "^\\d\\+: ")
-            let key = matchstr(tkey, "\\d\\+")
+            let key =  svnj#utils#extractkey(line)
+            let tkey = printf("%4d:", key)
             let line = substitute(line, "\*", "", "")
             let linenokey = substitute(line, tkey, "", "")
-            let dosel = s:resignselect(line, key, linenum, scmdpost, dosel)
-            let dobmrks = s:resignbmarks(a:dict, linenokey, bdict, linenum, bcmdpost, dobmrks)
+
+            if !brwsd 
+                let dosel = s:resignselect(line, key, linenum, scmdpost, dosel)
+            else
+                let path = svnj#utils#joinPath(a:dict.title, linenokey)
+                if index(selectpaths, path) >=0 
+                    exe 'silent! sign place ' . key . ' line=' . linenum . scmdpost
+                    let dosel -= 1
+                endif
+                if has_key(g:bmarks, path)
+                    exe 'silent! sign place ' . g:bmarks[path] . ' line=' . linenum . bcmdpost
+                    let dobmrks -= 1
+                endif
+            endif
             if (dosel == 0 && dobmrks == 0) | break | en
             let linenum += 1
         endfor
+        unlet! selectpaths
     endif
 endf
 
@@ -123,15 +142,6 @@ fun! s:resignselect(line, key, linenum, cmdpost, selcnt)
     if matchstr(a:line, s:selectd[a:key].line) == ""  | retur a:selcnt | en
     exe 'silent! sign place ' . a:key . ' line=' . a:linenum . a:cmdpost
     retu a:selcnt - 1
-endf
-
-fun! s:resignbmarks(dict, line, bdict, linenum, cmdpost, bmrkcnt)
-    let line = svnj#utils#joinPath(a:dict.meta.url, a:line)
-    if !has_key(g:bmarks, line) | retu a:bmrkcnt | en
-    if !has_key(a:bdict, line)  | retu a:bmrkcnt | en
-    let id = g:bmarks[line]
-    exe 'silent! sign place ' . id . ' line=' . a:linenum . a:cmdpost
-    return a:bmrkcnt - 1
 endf
 
 fun! s:signbmark(theid, isadd)

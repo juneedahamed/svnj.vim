@@ -25,6 +25,21 @@ fun! svnj#utils#getErrSyn()
 endf
 "2}}}
 
+fun! svnj#utils#keysCurBuffLines()
+    let keys = []
+    for i in range(1, line('$'))
+        let key = svnj#utils#extractkey(getline(i))
+        if key != "" | call add(keys, key) | en
+    endfor
+    return keys
+endf
+
+fun! svnj#utils#extractkey(line)
+    let tokens = split(a:line, ':')
+    if len(tokens) > 0 | retu svnj#utils#strip(tokens[0]) | en
+    return ""
+endf
+
 fun! svnj#utils#bufFileAbsPath()
     let fileabspath = expand('%:p')
     if fileabspath ==# ''
@@ -42,6 +57,31 @@ fun! svnj#utils#joinPath(v1, v2)
     return a:v1 . sep . a:v2
 endf
 
+fun! svnj#utils#globpath(dir)
+    let [files, tdirs] = [[], [a:dir]]
+    while len(files) < g:svnj_browse_max_files_cnt && len(tdirs) > 0
+        let curdir = remove(tdirs, 0)
+        call svnj#utils#showConsoleMsg("Fetching files : " . curdir, 0)
+        let flist = split(globpath(curdir, "*"), "\n")
+        let [tfiles, tdirs2] =  s:filedirs(flist)
+        call extend(files, tfiles)
+        call extend(files, tdirs2)
+        call extend(tdirs, tdirs2)
+        unlet! flist tfiles tdirs2 
+    endwhile
+    unlet! tdirs
+    return files
+endf
+
+fun! s:filedirs(flist)
+    let [files, dirs] = [[], []]
+    for entry in a:flist
+        if len(matchstr(entry, g:p_ign_fpat)) != 0 | con | en
+        call call('add', [isdirectory(entry) ? dirs : files, entry])
+    endfor
+    return [files, dirs]
+endf
+
 fun! svnj#utils#strip(input_string)
     return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
 endf
@@ -53,7 +93,7 @@ fun! svnj#utils#getparent(url)
     return url
 endf
 
-fun! svnj#utils#isSvnDir(url)
+fun! svnj#utils#isSvnDirReg(url)
     let slash = matchstr(a:url, "/$")
     return slash == "/" 
 endf
@@ -65,6 +105,13 @@ endf
 fun! svnj#utils#showErrorConsole(msg)
     echohl Error | echo a:msg | echohl None
     let ign = input('Press Enter to coninue :')
+endf
+
+fun! svnj#utils#showConsoleMsg(msg, wait)
+    redr | echohl special | echon a:msg | echohl None
+    if a:wait
+        let x = input("Press Enter to continue :")
+    endif
 endf
 
 fun! svnj#utils#errDict(title, emsg)
@@ -93,9 +140,14 @@ endf
 fun! svnj#utils#listFiles(url, rec, ignore_dirs)
     let cwd = getcwd()
     sil! exe 'lcd ' . a:url
-    let patt = a:rec ? "**/*" : "*"
-    let filesstr = globpath('.', patt)
-    let fileslst = split(filesstr, '\n')
+    if ! a:rec 
+        let patt = a:rec ? "**/*" : "*"
+        let filesstr = globpath('.', patt)
+        let fileslst = split(filesstr, '\n')
+    else
+        let fileslst = svnj#utils#globpath(".")
+    endif
+
     let entries = []
     let strip_pat = '^\./' 
     for line in  fileslst
@@ -124,6 +176,10 @@ endf
 fun! svnj#utils#selkey()
     return has('gui_running') ? ["\<C-Space>", 'C-space:Mark'] :
                 \ ["\<C-H>", 'C-H:Mark']
+endf
+
+fun! svnj#utils#topop()
+    return {"\<C-t>": ['C-t:top', 'svnj#stack#top'],}
 endf
 
 fun! svnj#utils#upop()
