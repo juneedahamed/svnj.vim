@@ -59,17 +59,12 @@ fun! svnj#select#book(url)
         let g:bmarks[a:url] = g:bmarkssid
         call s:signbmark(g:bmarkssid, 1)
     endif
+    call svnj#caop#cachebmarks()
     return 2
 endf
 
 fun! svnj#select#booked()
-    let entries = []
-    for [line, val] in items(g:bmarks)
-        let listentryd = {}
-        let listentryd.line = line
-        call add(entries, listentryd)
-    endfor
-    return entries
+    return keys(svnj#caop#fetchbmarks())
 endf
 "2}}}
 
@@ -112,7 +107,7 @@ fun! s:resign(dict)
         let bcmdpost = ' name=svnjbook buffer=' . bufnr('%')
         let linenum = 1
         for line in getbufline(bufnr('%'), 1, 80)
-            let key =  svnj#utils#extractkey(line)
+            let [key, value] =  svnj#utils#extractkey(line)
             let tkey = printf("%4d:", key)
             let line = substitute(line, "\*", "", "")
             let linenokey = substitute(line, tkey, "", "")
@@ -120,7 +115,7 @@ fun! s:resign(dict)
             if !brwsd 
                 let dosel = s:resignselect(line, key, linenum, scmdpost, dosel)
             else
-                let path = svnj#utils#joinPath(a:dict.title, linenokey)
+                let path = svnj#utils#joinPath(a:dict.bparent, linenokey)
                 if index(selectpaths, path) >=0 
                     exe 'silent! sign place ' . key . ' line=' . linenum . scmdpost
                     let dosel -= 1

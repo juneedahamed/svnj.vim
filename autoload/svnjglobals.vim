@@ -5,29 +5,28 @@
 " =============================================================================
 
 "global vars {{{2
+
+"start init {{{3
 fun! svnjglobals#init()
-    "global customize {{{3
-    fun! s:get_global_hl(varname, defval)
-        if !exists(a:varname) || !hlexists(eval(a:varname))
-            return a:defval
-        else
-            return eval(a:varname)
-        endif
-    endf
+    try| call s:custom() | catch | endt
+    try| call s:customize() | catch | endt
+    try| call s:cache() | catch | endt
+    try| call s:signs() | catch | endt
+    try| call s:ignores() | catch | endt
+    try| call s:fuzzy() | catch | endt
+    try| call s:urls() | catch | endt
+    
+    let g:svnj_key_patt = '\v\c\d+:'
+    "g:bmarks = { filepath : id }
+    let g:bmarks = {}
+    let g:bmarkssid = 1000
+    
+    return 1
+endf
+"3}}}
 
-    let g:svnj_custom_fuzzy_match_hl = s:get_global_hl('g:svnj_custom_fuzzy_match_hl', 'Directory')
-    let g:svnj_custom_menu_color = s:get_global_hl('g:svnj_custom_menu_color', 'MoreMsg')
-    let g:svnj_custom_error_color = s:get_global_hl('g:svnj_custom_error_color', 'Error')
-    let g:svnj_custom_prompt_color = s:get_global_hl('g:svnj_custom_prompt_color', 'Title')
-    let g:svnj_custom_statusbar_hl = s:get_global_hl('g:svnj_custom_statusbar_hl', 'Question')
-    let g:svnj_custom_statusbar_title = s:get_global_hl('g:svnj_custom_statusbar_title', 'LineNr')
-    let g:svnj_custom_statusbar_title = '%#' . g:svnj_custom_statusbar_title .'#'
-    let g:svnj_custom_statusbar_ops_hl = s:get_global_hl('g:svnj_custom_statusbar_ops_hl', 'Search')
-    let g:svnj_custom_statusbar_sel_hl = s:get_global_hl('g:svnj_custom_statusbar_sel_hl', 'Question')
-    let g:svnj_custom_statusbar_ops_hide = get(g:, 'svnj_custom_statusbar_ops_hide', 0)
-    "3}}}
-
-    "vars {{{3
+"custom gvars {{{3
+fun! s:custom()
     let g:svnj_max_logs = get(g:, 'svnj_max_logs', 10)
     let g:svnj_max_open_files = get(g:, 'svnj_max_open_files', 10)
     let g:svnj_max_diff = get(g:, 'svnj_max_diff', 2)
@@ -38,23 +37,119 @@ fun! svnjglobals#init()
     let g:svnj_enable_debug = get(g:, 'svnj_enable_debug', 0)
     let g:svnj_browse_max_files_cnt= get(g:, 'svnj_browse_max_files_cnt', 10000)
     let g:svnj_browse_repo_max_files_cnt= get(g:, 'svnj_browse_repo_max_files_cnt', 1000)
+endf
+"3}}}
 
+"customize gvars {{{3
+fun! s:customize() 
+    fun! s:get_hl(varname, defval)
+        retu !exists(a:varname) || !hlexists(eval(a:varname)) ? a:defval : eval(a:varname)
+    endf
+
+    let g:svnj_custom_fuzzy_match_hl = s:get_hl('g:svnj_custom_fuzzy_match_hl', 'Directory')
+    let g:svnj_custom_menu_color = s:get_hl('g:svnj_custom_menu_color', 'MoreMsg')
+    let g:svnj_custom_error_color = s:get_hl('g:svnj_custom_error_color', 'Error')
+    let g:svnj_custom_prompt_color = s:get_hl('g:svnj_custom_prompt_color', 'Title')
+    let g:svnj_custom_statusbar_hl = s:get_hl('g:svnj_custom_statusbar_hl', 'Question')
+    let g:svnj_custom_statusbar_title = s:get_hl('g:svnj_custom_statusbar_title', 'LineNr')
+    let g:svnj_custom_statusbar_title = '%#' . g:svnj_custom_statusbar_title .'#'
+    let g:svnj_custom_statusbar_ops_hl = s:get_hl('g:svnj_custom_statusbar_ops_hl', 'Search')
+    let g:svnj_custom_statusbar_sel_hl = s:get_hl('g:svnj_custom_statusbar_sel_hl', 'Question')
+    let g:svnj_custom_statusbar_ops_hide = get(g:, 'svnj_custom_statusbar_ops_hide', 0)
+endf
+"3}}}
+    
+"cache gvars {{{3
+fun! s:cache()
+    fun! s:createdir(dirpath)
+        if isdirectory(a:dirpath) | retu 1 | en
+        if filereadable(a:dirpath) 
+            retu s:showErrorConsole("Error " . a:dirpath . 
+                        \ " already exist as a file expecting a directory")
+        endif
+        if exists("*mkdir")
+            try | call mkdir(a:dirpath, "p")
+            catch
+                retu s:showErrorConsole("Error creating cache dir: " .
+                            \ a:dirpath . " " .  v:exception)
+            endtry
+        endif
+        return 1
+    endf
+
+    let g:svnj_browse_cache_all = get(g:, 'svnj_browse_cache_all', 0)
+    let g:svnj_browse_bookmarks_cache = get(g:, 'svnj_browse_bookmarks_cache', 0)
+    let g:svnj_browse_repo_cache = get(g:, 'svnj_browse_repo_cache', 0)
+    let g:svnj_browse_workingcopy_cache = get(g:, 'svnj_browse_workingcopy_cache', 0)
+    let g:svnj_browse_cache_max_cnt = get(g:, 'svnj_browse_cache_max_cnt', 20)
+
+    let g:svnj_cache_dir = get(g:, 'svnj_cache_dir',
+			    \ !has('win32') ? expand($HOME . "/" . ".cache") : "")
+
+    "Create top dir
+    if !s:createdir(g:svnj_cache_dir) | let g:svnj_cache_dir = "" | en
+    let g:svnj_cache_dir = isdirectory(g:svnj_cache_dir) ? g:svnj_cache_dir . "/svnj" : ""
+    "Create cache dir
+    if g:svnj_cache_dir != "" && !s:createdir(g:svnj_cache_dir) 
+        let g:svnj_cache_dir = ""
+    endif
+
+    let isdir = isdirectory(g:svnj_cache_dir)
+    let g:svnj_browse_repo_cache = isdir && (g:svnj_browse_repo_cache || g:svnj_browse_cache_all)
+    let g:svnj_browse_workingcopy_cache = isdir &&
+                \ (g:svnj_browse_workingcopy_cache || g:svnj_browse_cache_all)
+    let g:svnj_browse_bookmarks_cache = isdir &&
+                \ (g:svnj_browse_bookmarks_cache || g:svnj_browse_cache_all)
+endf
+"3}}}
+
+"signs gvars {{{3
+fun! s:signs()
     if !exists('g:svnj_signs') | let g:svnj_signs = 1 | en
     if !has('signs') | let g:svnj_signs = 0 | en
 
+    if g:svnj_signs | sign define svnjmark text=s> texthl=Question linehl=Question
+    en
+    if g:svnj_signs | sign define svnjbook text=b> texthl=Constant linehl=Constant
+    en
+endf
+"3}}}
+
+"ignore gvars{{{3
+fun! s:ignores()
+    let ign_files = ['\.bin', '\.zip', '\.bz2', '\.tar', '\.gz', 
+                \ '\.egg', '\.pyc', '\.so', '\.git',
+                \ '\.png', '\.gif', '\.jpg', '\.ico', '\.bmp', 
+                \ '\.psd', '\.rpd', '\.pdf']
+
+    if exists('g:svnj_ignore_files') && type(g:svnj_ignore_files) == type([])
+        for ig in g:svnj_ignore_files | call add(ign_files, ig) | endfor
+    endif
+    let g:p_ign_fpat = '\v('. join(ign_files, '|') .')'
+endf
+"3}}}
+
+" fuzzy gvars {{{3
+fun! s:fuzzy()
     let g:svnj_fuzzy_search = (!exists('g:svnj_fuzzy_search')) ||
                 \ type(eval('g:svnj_fuzzy_search')) != type(0) ?
                 \ 1 : eval('g:svnj_fuzzy_search')
-    let g:svnj_fuzzy_search = g:svnj_fuzzy_search == 1 && has('python') ? 1 : 0 
-
+    
     let g:svnj_fuzzy_search_result_max = (!exists('g:svnj_fuzzy_search_result_max'))  || 
                 \ type(eval('g:svnj_fuzzy_search_result_max')) != type(0) ? 
-                \ 50 : eval('g:svnj_fuzzy_search_result_max')
+                \ 100 : eval('g:svnj_fuzzy_search_result_max')
 
-    fun! s:strip(input_string)
-        return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
-    endf
+    let g:svnj_fuzzy_vim = get(g:, 'svnj_fuzzy_vim', 0) 
+endf
+"3}}}
 
+fun! s:strip(input_string) "{{{3
+    return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
+endf
+"3}}}
+
+"urls {{{3
+fun! s:urls()
     fun! s:initPathVariables(pathvar)
         return exists(a:pathvar) ? s:stripAddSlash(eval(a:pathvar)) : ''
     endf
@@ -80,31 +175,15 @@ fun! svnjglobals#init()
 
     let g:p_turl = s:initPathVariables('g:svnj_trunk_url')
     let g:p_wcrp = s:initPathVariables('g:svnj_working_copy_root_path')
-
-    let ign_files = ['\.bin', '\.zip', '\.bz2', '\.tar', '\.gz', 
-                \ '\.egg', '\.pyc',  
-                \ '\.so', '\.git',
-                \ '\.png', '\.gif', '\.jpg', '\.ico', '\.bmp', 
-                \ '\.psd', '\.rpd', '\.pdf']
-
-    if exists('g:svnj_ignore_files') && type(g:svnj_ignore_files) == type([])
-        for ig in g:svnj_ignore_files | call add(ign_files, ig) | endfor
-    endif
-    let g:p_ign_fpat = '\v('. join(ign_files, '|') .')'
-
-    let g:svnj_key_patt = '\v\c:\d+:$'
-    "g:bmarks = { filepath : id }
-    let g:bmarks = {}
-    let g:bmarkssid = 1000
-
-    if g:svnj_signs | sign define svnjmark text=s> texthl=Question linehl=Question
-    en
-    if g:svnj_signs | sign define svnjbook text=b> texthl=Constant linehl=Constant
-    en
-    let g:svnj_undol_save = &undolevels
-    return 1
-    "3}}}
 endf
+"3}}}
+
+fun! s:showErrorConsole(msg) "{{{
+    echohl Error | echo a:msg | echohl None
+    let ign = input('Press Enter to coninue :')
+    retu 0
+endf
+"3}}}
 "2}}}
 
 "svnd reference {{{2
@@ -114,16 +193,16 @@ endf
 "           meta    : metad ,
 "           logd    : logdict
 "           statusd : statusdict
-"           browsed : browsedict 
 "           commitsd : logdict
 "           menud     : menudict
 "           error     : errd
 "           flistd : flistdict
+"           browsed : browsedict 
+"           bparent  : browse_rhs_path
 "       }
 "
 "flistdict = {
 "           contents { idx, flistentryd}
-"           format : funcref,
 "           ops :
 "}
 "flistentryd = { line :fpath }
@@ -132,38 +211,30 @@ endf
 "
 "logdict = {
 "          contents: {idx : logentryd},
-"          format:funcref,
-"          select:funcref
 "          ops    :
 "        }
 "logentryd = { line : str, revision : revision_number}
 "
 "statusdict = {
 "          contents: {idx : statusentryd},
-"          format:funcref,
-"          select:funcref
 "          ops    :
 "        }
 "statusentryd = { line : str(modtype fpath)  modtype: str, fpath : modified_or_new_fpath}
 "
 "browsedict = {
-"          contents: {idx : listentryd},
-"          format:funcref,
-"          select:funcref
+"          contents: {idx : fpath},
 "          ops    :
 "}
-"listentryd = { line : fpath}
 "
 "menudict = {
 "          contents : {idx : menudentryd},
-"          format : funcref,
-"          select : funcref,
 "          ops    :
 "}
 "menuentryd = {line: str, title: str, callack : funcref, convert:str }
 "
 "errd = { descr : str , msg: str, line :str, ops: op }
 "2}}}
+
 "selectd reference  {{{2
 "selectd : {strtohighlight:cache}   log = revision:svnurl,
 "selectdict = {

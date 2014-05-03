@@ -20,6 +20,7 @@ fun! svnj#dict#new(...)
     let obj.title = a:0 >= 1 ? a:1 : ''
     let obj.idx = 0
     let obj.opdsc = ''
+    let obj.bparent = ""
     if a:0 >= 2 | call extend(obj, a:2) | en
     return obj
 endf
@@ -38,7 +39,7 @@ fun! s:dict.lines() dict
     if has_key(self, s:logkey) | call extend(lines, self[s:logkey].format()) | en
     if has_key(self, s:statuskey) | call extend(lines, self[s:statuskey].format()) | en
     if has_key(self, s:commitskey) | call extend(lines, self[s:commitskey].format()) | en
-    if has_key(self, s:browsekey) | call extend(lines, self[s:browsekey].format()) | en
+    if has_key(self, s:browsekey) | call extend(lines, self[s:browsekey].format_browsed()) | en
     if has_key(self, s:flistkey) | call extend(lines, self[s:flistkey].format()) | en
     call extend(dislines, lines[ : g:svnj_max_buf_lines])
 
@@ -73,12 +74,13 @@ fun! s:dict.clear() dict
 endf
 
 fun! s:dict.getOps(key) dict
-    for thedict in self.entries()
-        if has_key(thedict.contents, a:key) | retu thedict.ops | en
-    endfor
-    if self.hasError() && has_key(self.error, "ops") 
+    if a:key == "err" && self.hasError() && has_key(self.error, "ops") 
         return self.error.ops
     endif
+    for thedict in self.entries()
+        if has_key(self, s:browsekey) | retu thedict.ops | en
+        if has_key(thedict.contents, a:key) | retu thedict.ops | en
+    endfor
     return {}
 endf
 
@@ -115,13 +117,24 @@ endf
 fun! s:entryd.format() dict
     let lines = []
     for key in sort(keys(self.contents), 'svnj#utils#sortConvInt')
-        "call add(lines, key. ': ' . self.contents[key].line)
         let line = printf("%4d:%s", key, self.contents[key].line)
         call add(lines, line)
     endfor
     return lines
 endf
 "2}}}
+
+fun! svnj#dict#addBrowseEntries(dict, key, entries, ops)
+    if !has_key(a:dict, a:key)
+        let a:dict[a:key] = deepcopy(s:entryd)
+    endif
+    let a:dict[a:key].contents = a:entries
+    call svnj#dict#addOps(a:dict, a:key, a:ops)
+endf
+
+fun! s:entryd.format_browsed() dict
+    return self.contents
+endf
 
 "Helpers {{{2
 fun! svnj#dict#addErr(dict, descr, msg)
@@ -152,6 +165,7 @@ fun! svnj#dict#addEntries(dict, key, entries, ops)
     if !has_key(a:dict, a:key)
         let a:dict[a:key] = deepcopy(s:entryd)
     endif
+
     for entry in a:entries
         let idx = a:dict.nextkey()
         let a:dict[a:key].contents[idx] = entry

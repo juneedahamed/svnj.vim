@@ -17,14 +17,17 @@ let g:loaded_svnj = 1
 "command mappings "{{{
 com! SVNDiff    call svnj#SVNDiff()
 com! SVNBlame   call svnj#SVNBlame()
-com! SVNCommits call svnj#cmmit#SVNCommits()
-com! SVNLog     call svnj#log#SVNLog()
+com! SVNInfo   call svnj#SVNInfo()
+com! SVNClearCache call svnj#caop#ClearAll()
 
 com! SVNBrowse call svnj#brwsr#SVNBrowse()
 com! SVNBrowseMyList call svnj#brwsr#SVNBrowseMyList()
 com! SVNBrowseBookMarks call svnj#brwsr#SVNBrowseMarked()
 
-com! -n=? SVNStatus  call svnj#status#SVNStatus(<f-args>)
+com! -n=* -com=dir SVNStatus  call svnj#status#SVNStatus(<f-args>)
+
+com! -n=? -com=file SVNLog  call svnj#log#SVNLog(<q-args>)
+com! -n=? -com=dir SVNCommits call svnj#cmmit#SVNCommits(<q-args>)
 com! -n=? -com=dir SVNBrowseRepo call svnj#brwsr#SVNBrowseRepo(<q-args>)
 com! -n=? -com=dir SVNBrowseWorkingCopy call svnj#brwsr#SVNBrowseWC(0, <q-args>)
 com! -n=? -com=dir SVNBrowseWorkingCopyRec call svnj#brwsr#SVNBrowseWC(1, <q-args>)
@@ -36,9 +39,9 @@ if exists('g:svnj_allow_leader_mappings') && g:svnj_allow_leader_mappings == 1
     map <silent> <leader>c :SVNCommits<CR>
     map <silent> <leader>d :SVNDiff<CR>
     map <silent> <leader>s :SVNStatus<CR>  
-    map <silent> <leader>su :SVNStatus u<CR>  
+    map <silent> <leader>su :SVNStatus u<CR>
     map <silent> <leader>sq :SVNStatus u q<CR>
-    map <silent> <leader>sp :SVNStatus u py<CR>
+    map <silent> <leader>sc :SVNStatus .<CR>
     map <silent> <leader>l :SVNLog<CR>
     map <silent> <leader>b :SVNBrowse<CR>
     map <silent> <leader>bl :SVNBrowseMyList<CR>

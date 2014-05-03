@@ -45,6 +45,22 @@ fun! svnj#SVNBlame()
 endf
 "2}}}
 
+"SVNInfo {{{2
+fun! svnj#SVNInfo()
+    try
+        call svnj#init()
+        call svnj#utils#showConsoleMsg(svnj#svn#info(svnj#utils#bufFileAbsPath()), 0)
+    catch
+        let edict = svnj#dict#new("SVNInfo")
+        call svnj#dict#addErr(edict, 'Failed ', v:exception)
+        call winj#populateJWindow(edict)
+        call edict.clear()
+        unlet! edict
+    endtry
+endf
+"2}}}
+
+
 "init/exit {{{2
 fun! svnj#doexit() 
     retu s:endnow
@@ -58,7 +74,7 @@ fun! svnj#prepexit()
 endf
 
 fun! svnj#init()
-    echo "Contacting the svn server please wait"
+    "echo "Contacting the svn server please wait"
     call svnj#stack#clear()
     call svnj#select#clear()
     let s:endnow = 0

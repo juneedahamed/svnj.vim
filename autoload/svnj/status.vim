@@ -15,27 +15,36 @@ fun! svnj#status#statusops()
    return {
                \ "\<Enter>"  : ['Ent:Open', 'svnj#gopshdlr#openFile', 'winj#newBufOpen'],
                \ "\<C-o>"    : ['C-o:OpenAll', 'svnj#gopshdlr#openFltrdFiles', 'winj#newBufOpen'],
-               \ "\<C-i>"    : ['C-i:info', 'svnj#gopshdlr#info'],
-               \ "\<C-w>"    : ['C-w:wrap!', 'svnj#gopshdlr#toggleWrap'],
-                \ s:selectkey  : [s:selectdscr, 'svnj#gopshdlr#select'],
+               \ "\<C-d>"    : ['C-d:Diff', 'svnj#gopshdlr#openFile', 'winj#diffFile'],
+               \ "\<C-i>"    : ['C-i:Info', 'svnj#gopshdlr#info'],
+               \ "\<C-w>"    : ['C-w:Wrap!', 'svnj#gopshdlr#toggleWrap'],
+               \ "\<C-y>"    : ['C-y:Cmd', 'svnj#gopshdlr#cmd'],
+               \ s:selectkey  : [s:selectdscr, 'svnj#gopshdlr#select'],
                \ }
 endf
 "2}}}
 
 "SVNStatus {{{2
 fun! svnj#status#SVNStatus(...)
-    call svnj#init()
     let s:sdict = svnj#dict#new("SVN Status")
     try
-        let choice = a:0 > 0 ? a:1 :
-                    \ input('Status (q quiet|u updates| '. 
-                    \ 'Enter for All|Space separated multiple grep args): ')
+        let [cargs, target] = ["", ""]
+        for elem in a:000
+            if elem == 'q' | let cargs = ' -q ' | cont | en
+            if elem == 'u' | let cargs = cargs . ' -u ' | cont| en
+            if elem == '.' | let target = getcwd() | cont | en
+            if isdirectory(elem) | let target = expand(elem) | cont | en
+        endfor
 
-        let s:sdict.meta = svnj#svn#getMeta(getcwd())
-        let cwd = s:sdict.meta.wrd
-        let svncmd = strlen(choice) > 0 ? s:argsSVNStatus(choice, cwd) :
-                    \ 'svn st --non-interactive ' . cwd
-        let entries = svnj#svn#summary(svncmd, s:sdict.meta)
+        if target == '' | let target = svnj#svn#workingRoot() | en
+        let svncmd = 'svn st --non-interactive ' . cargs . ' ' . target
+
+        call svnj#init()
+        let s:sdict.title = "SVN Status :" . target
+
+        let s:sdict.meta = svnj#svn#getMeta(target)
+        let s:sdict.meta.cmd = svncmd
+        let [entries, tdir] = svnj#svn#summary(svncmd)
         if empty(entries)
             call svnj#dict#addErr(s:sdict, 'No Modified files ..', '' )
         else
@@ -46,31 +55,6 @@ fun! svnj#status#SVNStatus(...)
     endtry
     call winj#populateJWindow(s:sdict)
     call s:sdict.clear()
-endf
-"2}}}
-
-"SVNStatus helpers {{{2
-fun! s:argsSVNStatus(choice, cwd)
-    let quiet = 0
-    let the_up = 0
-    let thegrep_cands = []
-    let cwd = a:cwd
-    for token in split(a:choice)
-        if token ==# '.' | let cwd = getcwd()
-        elseif toupper(token) ==# 'Q' | let quiet = 1
-        elseif toupper(token) ==# 'U' | let the_up = 1
-        else | call add(thegrep_cands, token)
-        endif
-    endfor
-
-    let svncmd = (the_up == 1 ) ? 'svn st --non-interactive -u ' :
-                \ 'svn st --non-interactive '
-    let svncmd = (quiet == 1 ) ? svncmd . ' -q ' . cwd : svncmd . cwd
-    if len(thegrep_cands) > 0
-        let thegrep_expr = '(' . join(thegrep_cands, '|') . ')'
-        let svncmd = svncmd . " | grep -E \'" . thegrep_expr . "\'"
-    endif
-    return svncmd
 endf
 "2}}}
 "1}}}

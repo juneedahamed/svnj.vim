@@ -14,14 +14,17 @@ let s:flistkey = "flistd"
 "2}}}
 
 "Key mappings for svn log output logops {{{3
+let [s:topkey, s:topdscr] = svnj#utils#topkey()
+let [s:ctrEntkey, s:ctrEntDescr] = svnj#utils#CtrlEntReplace('NoSplit')
 fun! s:logops()
     return { 
                 \ "\<Enter>"   : ['Ent:Diff', 'svnj#gopshdlr#openFile', 'winj#diffFile'],
-                \ "\<C-Enter>" : ['C-Enter:NoSplit', 'svnj#gopshdlr#openFile', 'winj#newBufOpen'],
+                \ s:ctrEntkey  : [s:ctrEntDescr, 'svnj#gopshdlr#openFile', 'winj#newBufOpen'],
                 \ "\<C-o>"     : ['C-o:Open', 'svnj#gopshdlr#openFile', 'winj#openRepoFileVS'],
-                \ "\<C-w>"     : ['C-w:wrap!', 'svnj#gopshdlr#toggleWrap'],
-                \ "\<C-u>"     : ['C-u:up', 'svnj#stack#pop'],
-                \ "\<C-t>"     : ['C-t:top', 'svnj#stack#top'],
+                \ "\<C-w>"     : ['C-w:Wrap!', 'svnj#gopshdlr#toggleWrap'],
+                \ "\<C-u>"     : ['C-u:Up', 'svnj#stack#pop'],
+                \ "\<C-a>"     : ['C-a:Afiles', 'svnj#log#affectedfiles'],
+                \ s:topkey     : [s:topdscr, 'svnj#stack#top'],
                 \ s:selectkey  : [s:selectdscr, 'svnj#gopshdlr#select'],
                 \ }
 endf
@@ -34,10 +37,10 @@ endf
 "3}}}
 
 "SVNLog {{{2
-fun! svnj#log#SVNLog()
+fun! svnj#log#SVNLog(...)
     try
         call svnj#init()
-        let tfile = svnj#utils#bufFileAbsPath()
+        let tfile = a:0>0 && a:1 != "" ? a:1 : svnj#utils#bufFileAbsPath()
     catch
         let ldict = svnj#dict#new("SVN Log")
         call svnj#dict#addErr(ldict, 'Failed ', v:exception)
@@ -51,7 +54,7 @@ fun! svnj#log#logs(lfile, populatecb, needLCR)
     let s:ldict = svnj#dict#new("SVN Log")
     try
         let s:ldict.meta = svnj#svn#getMeta(a:lfile)
-        let entries = svnj#svn#logs(s:ldict.meta.url)
+        let [entries, s:ldict.meta.cmd] = svnj#svn#logs(s:ldict.meta.url)
         call svnj#dict#addEntries(s:ldict, 'logd', entries, s:logops())
         call s:logMenus(s:ldict.meta.url)
         if a:needLCR
@@ -116,12 +119,50 @@ fun! svnj#log#listFilesFrom(key)
         let fileurl = svnj#svn#validateSVNURLInteractive(fileurl)
         let s:ldict.meta.url = fileurl
         let s:ldict.title = fileurl
-        call svnj#dict#addEntries(s:ldict, 'logd', svnj#svn#logs(s:ldict.meta.url), s:logops())
+        let [entries, s:ldict.meta.cmd] = svnj#svn#logs(s:ldict.meta.url)
+        call svnj#dict#addEntries(s:ldict, 'logd', entries, s:logops())
     catch
         call svnj#utils#dbgHld("At listFilesFrom", v:exception)
         call svnj#dict#addErrUp(s:ldict, 'Failed to construct svn url',' OR File does not exist')
     endtry
     call winj#populate(s:ldict)
+endf
+
+fun! svnj#log#affectedfiles(argdict)
+    try
+        let [adict, akey] = [a:argdict.dict, a:argdict.key]
+        let title = ""
+        let url = filereadable(adict.meta.fpath) || isdirectory(adict.meta.fpath) ? 
+                    \ adict.meta.fpath : adict.meta.url
+        let slist = []
+        
+        if !svnj#select#exists(akey)
+           call svnj#select#add(akey, adict.logd.contents[akey].line,
+                       \ url, adict.logd.contents[akey].revision)
+        endif
+
+        let [revisionA, revisionB] = ["", ""]
+        for [key, sdict] in items(svnj#select#dict())
+            if sdict.revision != ""
+                if revisionA == "" | let revisionA = sdict.revision | cont | en
+                if revisionB == "" | let revisionB = sdict.revision | cont | en
+            endif
+        endfor
+
+        if revisionA != "" && revisionB != ""
+            let title = revisionA . ':' . revisionB . '@' . url
+            let [slist, adict.meta.cmd] = svnj#svn#affectedfilesAcross(url,
+                        \ revisionA, revisionB)
+        else 
+            let revision = adict.logd.contents[akey].revision
+            let title = revision . '@' . url
+            let [slist, adict.meta.cmd] = svnj#svn#affectedfiles(url, revision)
+        endif
+        call svnj#select#clear()
+        return svnj#gopshdlr#displayAffectedFiles(adict, title, slist)
+    catch
+        call svnj#utils#dbgHld("At svnj#log#affectedfiles", v:exception)
+    endtry
 endf
 "2}}}
 

@@ -17,9 +17,11 @@ Plugin for subversion, supported operations are
     2. svn st    use |SVNStatus|
     3. svn diff  use |SVNDiff|  or |SVNLog| or |SVNCommits|
     4. svn blame use |SVNBlame|
-    5. svn list  use |SVNBrowse| or |SVNBrowseRepo|
-    6. misc          |SVNBrowseWorkingCopy| or |SVNBrowseMyList| and 
-                     |SVNBrowseBookMarks| 
+    5. svn info  use |SVNInfo|
+    6. svn list  use |SVNBrowse| or |SVNBrowseRepo|
+    7. misc          |SVNBrowseWorkingCopy| or |SVNBrowseMyList| and 
+                     |SVNBrowseBookMarks|
+                     |SVNClearCache|
 
 
 ================================================================================
@@ -29,6 +31,10 @@ COMMANDS                                                         *svnj-commands*
 
   Vertically splits the blame info for the file in bufffer
 
+:SVNInfo                                                            *SVNInfo*
+
+  Display svn info for the file in buffer
+
 :SVNDiff                                                             *SVNDiff*
 
   VimDiff the current file in buffer. For diff with other revisions
@@ -37,34 +43,52 @@ COMMANDS                                                         *svnj-commands*
   diff with the browsed file.
 
 
-:SVNStatus                                                           *SVNStatus*
+:SVNStatus                                                          *SVNStatus*
 
   Lists the output of the svn status from the working root dir.
-  On start of this command press "." to list only changes from the current dir
-  Provide space separated grep arguments.
-  During starup of this command:
-      1. Escape key will List status from working root dir
-      2. "." will list status from current working dir
-      3. "py sh" will show status of files containing py and sh only
-      4. q will use quite option for svn st command
-      5. u will use update option for svn st command
-  
+
+  Arguments:~
+
+   <none>  : List status from the working root dir/current dir
+             Working Copy Root Path is available only in the new versions of svn
+             Current Dir will be chosen if old version of svn
+             Check using svn info .
+
+   <dir>   : Lists status from the specified directory. Autocomplete dirs
+
+    .      : Lists status from the current directory.
+
+    q      : Passes Quiet option for svn st
+
+    u      : Passes updates option for svn st
+
   Key-Mappings:~
   
   |Enter|      : Open file under cursor and those marked
   |Ctrl-space| : mark the file for open
   |Ctrl-o|     : open all listed file
   |Ctrl-i|     : SVN info 
+  |Ctrl-d|     : Diff with the file in buffer
   |Ctrl-w|     : toggle the wrap settings
+
 
 :SVNLog                                                              *SVNLog*
 
-  Lists the log for the current file in buffer.
-  The status line will display the current revision.
-  To diff with a single revision navigate to the line using Up and Down Arrows
-  and then press Enter. Diff will be done with selected revision and the buffer file.
-  Supports up to 2 revisions to be selected for diff.
+  Lists the log for the current file in buffer. The status line will display the 
+  current revision. To diff with a single revision navigate to the line using Up
+  and Down Arrows and then press Enter. Diff will be done with selected revision 
+  and the buffer file. Supports up to 2 revisions to be selected for diff.
   
+  Arguments:~
+
+  <none>     : Assumes log for the file in current buffer. If no file in current buffer 
+               will report error.
+
+  <dir/file> : Accepts directories/files (autocompletion available). Will provide log
+               of the directory or file specified in argument
+
+   "."       : Will display log of the current working directory
+
   Key-Mappings:~
   
   |Enter|      : Opens file at cursor for diff
@@ -75,6 +99,23 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-o|     : open all marked revisions or revision under cursor
   |Ctrl-u|     : Move one step up
   |Ctrl-t|     : Go to start
+  |Ctrl-a|     : Affected/Modified files for the revision
+
+  Examples:~
+
+  + To list the affected files in current dir
+    :SVNLog .  
+    Go to required revision and press Ctrl-a
+
+  + To list the affected files from subdirectories of current working dir
+    :SVNLog directory
+    Go to required revision and press Ctrl-a
+
+  + To see the log of file in buffer
+    :SVNLog
+
+  + To see the log of file not in buffer
+    :SVNLog path/to/file
 
 :SVNCommits                                                          *SVNCommits*
 
@@ -82,12 +123,24 @@ COMMANDS                                                         *svnj-commands*
   Select upto two revisions to diff across the selected revisions using Ctrl-Space,
   the log of revisionA:revisionB will be displayed
   
+  Arguments:~
+
+  <none>   : Shows commits from the root of the working copy or current dir
+             Working Copy Root Path is available only in the new versions of svn
+             Current Dir will be chosen if old version of svn
+             Check using svn info .
+
+  <dir>    : Takes directories (auto completion available). Will show commits made
+             from the specified dir
+  '.'      : Will consider as current directory example: SVNCommits .
+
   Key-Mappings:~
   
-  |Enter|  : svn log using revision:HEAD
-  |Ctrl-p| : svn log using revision:PREV
-  |Ctrl-space| : mark to select a revision
-  |Ctrl-w| : toggle the wrap settings.
+  |Enter|      : SVN log using revision:HEAD
+  |Ctrl-p|     : SVN log using revision:PREV
+  |Ctrl-space| : Mark to select a revision
+  |Ctrl-w|     : Toggle the wrap settings.
+  |Ctrl-a|     : Affected/Modified files for the revision
 
 
 :SVNBrowse                                                          *SVNBrowse*
@@ -102,34 +155,49 @@ COMMANDS                                                         *svnj-commands*
                       from the working copy directory.
     3. MyList - The list provided by g:svnj_browse_mylist (use as permanent bookmarks)
     4. BookMarks - Bookmarks with Ctrl-b command. This is persisted only for the
-                   current session
+                   current session. To persist the bookmarks across sessions please
+                   see help |g:svnj_browse_bookmarks_cache| or |g:svnj_browse_cache_all|
  
 
 :SVNBrowseRepo                                                      *SVNBrowseRepo*
 
-  Browse the entire SVN with this command. Command takes in the following arguments.
-  1. noarguments : Starts at the current directory, the current directory
+  Browse the entire SVN Repository with this command.
+
+  Arguments:~
+
+  <none>      : Starts at the current directory, the current directory
                    should be a working copy
-  2. <directory> : Starts browsing at the specified directory
+  <directory> : Starts browsing at the specified directory
+
+  "/"         : Will start browsing from the root of the repository
   
   Key-Mappings:~
   
-  |Enter|   : If directory, lists all files with in the directory.
-              If file, opens the file in new buffer
+  |Enter|      : If directory, lists all files with in the directory.
+                 If file, opens the file in new buffer
   |Ctrl-Enter| : If directory list files using recursive command
                  If file, opens the file in buffer
-  |Ctrl-u|  : Navigate back. NOTE: The Enter works as Navigate forward 
-  |Ctrl-t|  : Go to start
-  |Ctrl-o|  : Opens all files (directories will be ignored). The number of files
-              that will be opened depends on the value specified at
-              |g:svnj_max_open_files| 
-  |Ctrl-d|  : Opens the marked/selected file in diff mode with the file in buffer
-  |Ctrl-l|  : Opens the log for the file under cursor line.
-              Once the log is displayed can Navigate back as |Ctrl-u|
-              All operations supported by |SVNLog| are supported along with 
-              Ctrl-u  to navigate back
-  |Ctrl-i|  : SVN info 
+  |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
+  |Ctrl-t|     : Go to start
+  |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
+                 that will be opened depends on the value specified at
+                 |g:svnj_max_open_files| 
+  |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
+  |Ctrl-l|     : Opens the log for the file under cursor line.
+                 Once the log is displayed can Navigate back as |Ctrl-u|
+                 All operations supported by |SVNLog| are supported along with 
+                 Ctrl-u  to navigate back
+  |Ctrl-i|     : SVN info 
   |Ctrl-space| : Mark the file for open
+  |Ctrl-a|     : Affected/Modified files for the revision
+  |Ctrl-b|     : Bookmark the dir/file. To persist the bookmarks across sessions please
+                   see help |g:svnj_browse_bookmarks_cache| or |g:svnj_browse_cache_all|
+  |Ctrl-r|    : Refresh. When caching/persistency is enabled using 
+                |g:svnj_browse_cache_all| or |g:svnj_browse_repo_cache| the cache will
+                be cleared and the contents fetched again. The caching is done only if
+                the recursive listing is used using |Ctrl-Enter| This helps for faster
+                navigation.  Use |SVNClearCache| to clear all cached info. See also
+                |g:svnj_cache_dir| 
 
 
 :SVNBrowseWorkingCopy                                     *SVNBrowseWorkingCopy*
@@ -138,29 +206,35 @@ COMMANDS                                                         *svnj-commands*
   Now works for local file system not under svn.
   Command takes in the following arguments.
 
-  1. noarguments : Starts at the current directory, the current directory
-                   should be a working copy
-  2. <directory> : Starts browsing at the specified directory should a svn working 
-                    copy
+  <none>      : Starts at the current directory, the current directory
+                should be a working copy
+  <directory> : Starts browsing at the specified directory should be a svn working 
+                copy
   
   Key-Mappings:~
   
-  |Enter|   : If directory, lists all files with in the directory.
-              If file, opens the file in new buffer
+  |Enter|      : If directory, lists all files with in the directory.
+                  If file, opens the file in new buffer
   |Ctrl-Enter| : If directory list files using recursive command
                  If file, opens the file in buffer
-  |Ctrl-u|  : Navigate back. NOTE: The Enter works as Navigate forward 
-  |Ctrl-t|  : Go to start
-  |Ctrl-o|  : Opens all files (directories will be ignored). The number of files
-              that will be opened depends on the value specified at
-              |g:svnj_max_open_files| 
-  |Ctrl-d|  : Opens the marked/selected file in diff mode with the file in buffer
-  |Ctrl-l|  : Opens the log for the file under cursor line.
-              Once the log is displayed can Navigate back as |Ctrl-u|
-              All operations supported by |SVNLog| are supported along with 
-              Ctrl-u  to navigate back
-  |Ctrl-i|  : SVN info 
+  |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
+  |Ctrl-t|     : Go to start
+  |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
+                 that will be opened depends on the value specified at
+                 |g:svnj_max_open_files| 
+  |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
+  |Ctrl-l|     : Opens the log for the file under cursor line.
+                 Once the log is displayed can Navigate back as |Ctrl-u|
+                 All operations supported by |SVNLog| are supported along with 
+                 Ctrl-u  to navigate back
+  |Ctrl-i|     : SVN info 
   |Ctrl-space| : Mark the file for open
+  |Ctrl-b|     : Bookmark
+  |Ctrl-a|     : Affected/Modified files for the revision
+  |Ctrl-r|     : Recreate cache and refresh list, cache created only if enabled.
+                 Also see |g:svnj_cache_dir| |g:svnj_browse_cache_all|
+                 |g:svnj_browse_cache_max_cnt| |SVNClearCache|
+
 
 :SVNBrowseMyList                                                *SVNBrowseMyList*
 
@@ -169,32 +243,56 @@ COMMANDS                                                         *svnj-commands*
 
    Key-Mappings:~
   
-  |Enter|   : If directory, lists all files with in the directory.
-              If file, opens the file in new buffer
+  |Enter|      : If directory, lists all files with in the directory.
+                 If file, opens the file in new buffer
   |Ctrl-Enter| : If directory list files using recursive command
                  If file, opens the file in buffer
-  |Ctrl-u|  : Navigate back. NOTE: The Enter works as Navigate forward 
-  |Ctrl-t|  : Go to start
-  |Ctrl-o|  : Opens all files (directories will be ignored). The number of files
-              that will be opened depends on the value specified at
-              |g:svnj_max_open_files| 
-  |Ctrl-d|  : Opens the marked/selected file in diff mode with the file in buffer
-  |Ctrl-l|  : Opens the log for the file under cursor line.
-              Once the log is displayed can Navigate back as |Ctrl-u|
-              All operations supported by |SVNLog| are supported along with 
-              Ctrl-u  to navigate back
-  |Ctrl-i|  : SVN info 
+  |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
+  |Ctrl-t|     : Go to start
+  |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
+                 that will be opened depends on the value specified at
+                 |g:svnj_max_open_files| 
+  |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
+  |Ctrl-l|     : Opens the log for the file under cursor line.
+                Once the log is displayed can Navigate back as |Ctrl-u|
+                All operations supported by |SVNLog| are supported along with 
+                Ctrl-u  to navigate back
+  |Ctrl-i|     : SVN info 
   |Ctrl-space| : Mark the file for open
+  |Ctrl-b|     : Bookmark
+  |Ctrl-a|     : Affected/Modified files for the revision
+  |Ctrl-r|     : Recreate cache and refresh list, cache created only if enabled
 
 :SVNBrowseBookMarks                                            *SVNBrowseBookMarks*
     
   While browsing the repo/working copy you can bookmarks the dir/files with Ctrl-b
   key. All of the book marked files will be listed here. All of the browsing options
   are again valid. These bookmarked files/dirs are available only for the current
-  vim session, Once vim is closed all bookmarks are lost. If you need some of the 
-  dirs/files as bookmarks across sessions use the mylist opiton i,e 
-  |SVNBrowseMyList| and code in .vimrc the |g:svnj_browse_mylist| with values as 
-  mentioned in the description of |g:svnj_browse_mylist|
+  vim session unless caching is enabled, Once vim is closed all bookmarks are lost. 
+  If you need some of the dirs/files as bookmarks across sessions without enabling
+  the caching use the mylist opiton i,e |SVNBrowseMyList| and code in .vimrc the 
+  |g:svnj_browse_mylist| with values as mentioned in the description of
+  |g:svnj_browse_mylist|
+
+                                                                  
+SVNClearCache                                                     *SVNClearCache*
+
+This command clears all cached files. The caching is not enabled by default. 
+Please look at
+ |g:svnj_browse_cache_all|
+ |g:svnj_browse_bookmarks_cache|
+ |g:svnj_browse_repo_cache|
+ |g:svnj_browse_workingcopy_cache|
+ |g:svnj_cache_dir|
+ |g:svnj_browse_max_files_cnt| and 
+ |g:svnj_browse_repo_max_files_cnt| for more info. 
+
+NOTE on UNIX/OSX setting |g:svnj_browse_cache_all| to 1 will enable all
+of the feature. The rest of the options can be used to fine grain to the need.
+Example at .vimrc >
+
+  let g:svnj_browse_cache_all = 1
+<
 
 ================================================================================
 OPTIONS                                                     *svnj-options*
@@ -203,14 +301,13 @@ Description:~
 
                                                            *'g:svnj_trunk_url'*
 This variable along with |g:svnj_branch_url| are used to retrieve the files from 
-branches and trunk dor |SVNLog| command. If these option are set to proper values
+branches and trunk for |SVNLog| command. If these option are set to proper values
 svnj shall be able to display files from the trunk and other branches. Helpful to
 diff and logs of files across branches and/or trunk.
 
-For in dept |g:svnj_branch_url| option description look further down at 
-|g:svnj_branch_url| description where multiple branches/directories can now be 
-specified. These values should point to the parent directory of the checkedout 
-copy at the svn server 
+For in depth |g:svnj_branch_url| option look further down at |g:svnj_branch_url|
+description where multiple branches/directories can now be specified. These values
+should point to the parent directory of the checkedout copy at the svn server 
 
 |g:svnj_trunk_url| do not support coma separated values
 |g:svnj_branch_url| does support coma separated values
@@ -356,6 +453,78 @@ To disable signs, at .vimrc code >
 To enable it (default), at .vimrc code >
     let g:svnj_signs = 1
 <
+                                                            *'g:svnj_cache_dir'*
+This is the directory where the cached information will be stored. This option
+is required for windows. On MAC/Unix the default location is $HOME/.cache.
+A new directory svnj will be created in the specified directory. For more info
+about cache look at |g:svnj_browse_cache_all| , |g:svnj_browse_cache_max_cnt|
+
+To change the location of the storing the cache info at .vimrc code >
+  let g:svnj_cache_dir="/path/to/cache"
+<
+
+NOTE: For windows this option must be specified. Example say we want to specify
+the home directory of user1
+>
+  let g:svnj_cache_dir="C:/Users/user1"
+< 
+
+                                           *'g:svnj_browse_cache_all'*
+                                           *'g:svnj_browse_bookmarks_cache'*
+                                           *'g:svnj_browse_repo_cache'*
+                                           *'g:svnj_browse_workingcopy_cache'*
+
+Caching of file/directories retrived from the repositoy, working copy or bookmarks
+is not cached by default. Enabling this feature will help increase the speed of
+listing the files during browse operations. Enabling the caching of bookmarks
+enables the bookmarks to be available across all vim sessions. 
+When these options are enabled the retrieved info as said below
+
+|g:svnj_browse_repo_cache| - File/Directory names retrieved from SVN while
+                           performing a recursive list of repository
+
+|g:svnj_browse_workingcopy_cache| - File/Directory names retrieved from the
+                           local/working copy for recursive listing
+
+|g:svnj_browse_bookmarks_cache|  - The bookmarked files/dirs
+
+will be cached at default $HOME.cache.svnj directory or the direcory specified
+by |g:svnj_cache_dir| option . The number of files stored can be controlled by 
+|g:svnj_browse_cache_max_cnt| The |g:svnj_browse_cache_all| will enable all 
+caching and hence no need to specify the other cache options mentioned
+
+example at .vimrc to enable all caching >
+  let g:svnj_browse_cache_all = 1 
+<
+
+example at .vimrc to enable bookmarks caching only >
+  let g:svnj_browse_bookmarks_cache = 1 
+<
+
+                                            *'g:svnj_browse_cache_max_cnt'*
+The options is used for caching. This specifies the number of files that 
+can be stored in the cache. Each file contains the listing of each 
+independent directory. The default value is 20. In order to increase this
+at .vimrc code >
+  let g:svnj_browse_cache_max_cnt = 50
+<
+
+                                            *'g:svnj_browse_repo_max_files_cnt'*
+This option specifies the maximum number of files to be fetched during 
+|SVNBrowseRepo| command while recursive. The default value is 1000. If the 
+caching is enabled its bettter to increase this value. To change this value 
+to say 2000 code at .vimrc >
+  let g:svnj_browse_repo_max_files_cnt = 2000
+<
+
+                                              *'g:svnj_browse_max_files_cnt'*
+This option specifies the maximum number of files to be fetched during 
+|SVNBrowseWorkingCopy| command while recursive. The default value is 10000. If the 
+caching is enabled its bettter to increase this value. To change this value 
+to say 20000 code at .vimrc >
+  let g:svnj_browse_max_files_cnt = 20000
+<
+
 
 ===============================================================================
 MAPPINGS                                                   *svnj-mappings*
@@ -496,7 +665,7 @@ v0.5~
   FIXED:
   + statusline getting disappeared in few scenarios 
   
-  ENAHANCEMENTS:
+  ENHANCEMENTS:
 
   + Added BrowseWorkingCopyRec
      - This command recusrively lists file, avoids a few key strokes
@@ -519,5 +688,43 @@ v0.5~
   + Added more customization options
      g:svnj_custom_statusbar_ops_hl, g:svnj_custom_statusbar_ops_hide,
      g:svnj_custom_statusbar_sel_hl
+
+v0.6~
+
+  ADDITIONS:
+
+  + Support for WINDOWS (tested on vim 7.4 should work from 7.0)
+  + Support fuzzy with out python  
+  + Support for caching - helps improve speed while doing svn files retrieval
+    Only for browsing files
+
+  + Affected files operation for SVNBrowse, SVNLog and SVNCommits. THIS IS GOOD :)
+    |Ctrl-a| brings up the affected files for the selected revision.  It is available for
+    the outputs of browsing and log. Selecting more than one will diff the selected revisions
+    and brings out the changed/affected files across the revisions.
+
+  + Added Ctrl-y which will display the svn cmd used. If a better cmd/opt can be used let me
+    know
+
+  + Added SVNClearCache to clear all cached info
+
+  + Added command SVNInfo
+
+  ENHANCEMENTS:
+
+  + SVNCommits now accepts directories.  A '.' will be expanded to the current directory
+  + SVNLog now accepts directories or files.
+  + SVNStatus now accepts directories.
+  + SVNBrowseRepo now accepts "/" and start browsing from the root of repository
+  + SVNBrowseRepo, SVNBrowseWorkingCopy, SVNBrowseBookMarks now can be cached
+     NOT Enabled by default. Need to enable this see :help SVNClearCache
+  + SVNBrowseRepo, SVNBrowseWorkingCopy now has Ctrl-r to refresh, recreates cache
+  + SVNBrowseWorkingCopy, SVNBrowseRepo recursive listing can now be controlled using
+    g:svnj_browse_max_files_cnt and g:svnj_browse_repo_max_files_cnt
+
+  FIXED
+  + Highlighting of Mark/Selected file 
+  + Diff when browsing local files
+
 ================================================================================
 vim:ft=help:et:ts=2:sw=2:sts=2:norl

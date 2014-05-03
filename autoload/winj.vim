@@ -5,7 +5,6 @@
 " License:      Distributed under the same terms as Vim itself. See :help license.
 " Credits:      Method pyMatch copied and modified from : Alexey Shevchenko
 "               Userid FelikZ/ctrlp-py-matcher from github
-"
 " =============================================================================
 
 "autoload/winj.vim {{{1
@@ -51,7 +50,6 @@ fun! s:setup()
     setl nobuflisted
     setl noswapfile nowrap nonumber cul nocuc nomodeline nomore nospell nolist wfh
 	setl bt=nofile bh=unload
-	abc <buffer>
     autocmd VimResized svnj_window call s:fakeKeys()
 endf
 
@@ -97,7 +95,7 @@ fun! winj#populate(cdict)
     silent! exe 'resize ' . line('$') + 40
     let s:fregex = ""
     call s:resizewin()
-    call s:dohighlights("")
+    call s:dohighlights()
     call s:updateStatus()
     setl nomodifiable | redr!
 endf
@@ -125,9 +123,10 @@ fun! s:repopulate(fltr, incr)
         else | call s:setline(1, b:flines) | en
         unlet! b:flines
 
-        call s:dohighlights(a:fltr)
+        call s:dohighlights()
         call s:resizewin()
         call s:updateStatus()
+        redraw!
     catch | call svnj#utils#dbgHld("At repopulate", v:exception) | endt
     setl nomodifiable 
 endf
@@ -140,7 +139,7 @@ fun! s:setline(start, lines)
     catch | endt
     try | call setline(a:start, a:lines) | catch | endt
     try | exec 'set undolevels=' . oul | catch | endt
-    redraw!
+    redraw
 endf
 "2}}}
 
@@ -150,17 +149,23 @@ fun! s:prompt()
     while !svnj#doexit()
         try
             redr | exec 'echohl ' . g:svnj_custom_prompt_color
-            echon "filter : " | echohl None | echon fltr
+            echon "filter :" | echohl None | echon fltr
             let nr = getchar()
             let chr = !type(nr) ? nr2char(nr) : nr
+            if nr == 32 && fltr=="" | cont | en
 
-            let key = svnj#utils#extractkey(getline('.'))
+            silent! exe s:jwinnr . 'wincmd w'
+            let [key, line] = svnj#utils#extractkey(getline('.'))
             let opsd = s:cdict.getOps(key)
             if len(opsd) > 0 && has_key(opsd, chr)
                 try
-                    let args = [s:cdict, key]
-                    call extend(args, opsd[chr][2:])
-                    let ret = call(opsd[chr][1], args) 
+                    let argdict = { 
+                                \ "dict" : s:cdict,
+                                \ "key" : key,
+                                \ "line" : line,
+                                \ "opt" : opsd[chr][2:] 
+                                \ }
+                    let ret = call(opsd[chr][1], [argdict]) 
                     if ret != 2 | let fltr = "" | en
                     call s:updateStatus() | redr! | cont
                 catch 
@@ -191,11 +196,18 @@ endf
 "2}}}
 
 "highlight {{{2
-fun! s:dohighlights(fltr)
+fun! s:dohighlights()
      try
         silent! exe s:jwinnr . 'wincmd w'
         call clearmatches()
-        if s:fregex != "" | call matchadd(g:svnj_custom_fuzzy_match_hl, '\v\c' . s:fregex) | en
+
+        if s:fregex != "" 
+            let ignchars = "[\\(\\)\\<\\>\\{\\}\\\]"
+            let s:fregex = substitute(s:fregex, ignchars, "", "g")
+            try | call matchadd(g:svnj_custom_fuzzy_match_hl, '\v\c' . s:fregex)
+            catch | endtry
+        endif
+
         if len(svnj#select#dict()) && !g:svnj_signs
             let patt = join(map(copy(keys(svnj#select#dict())),
                         \ '"\\<" . v:val . ": " . ""' ), "\\|")
@@ -230,8 +242,13 @@ fun! winj#diffFile(revision, svnurl)
     call s:closeMe()
     let filetype=&ft
     let revision = len(a:revision) > 0 ? " -" . a:revision : ""
-    let cmd = "%!svn cat " . revision . ' '. a:svnurl
-    let fname =  svnj#utils#strip(a:revision)."_".svnj#utils#strip(a:svnurl)
+    if a:revision == "" && filereadable(a:svnurl)
+        let cmd = "%!cat " . a:svnurl
+        let fname =  svnj#utils#strip(a:svnurl)
+    else
+        let cmd = "%!svn cat " . revision . ' '. a:svnurl
+        let fname =  svnj#utils#strip(a:revision)."_".svnj#utils#strip(a:svnurl)
+    endif
     diffthis | exec 'vnew! '. fname | exec cmd |  diffthis
     exe "setl bt=nofile bh=wipe nobl noswf ro ft=" . filetype
     return 0
@@ -290,75 +307,125 @@ endf
 "2}}}
 
 "python filterContents "{{{2
-"sets b:slst and s:fregex
+fun! s:filterContents(items, str, limit)
+    let b:flines = []
+    let s:fregex = ""
+    let ignchars = "[\\*|\\|\\~|\\@|\\%|\\(|\\)|\\[|\\]|\\{|\\}|\\']"
+    let str = substitute(a:str, ignchars, "", "g")
+    let str = substitute(a:str, "\\.\\+", "\\.", "g")
+    if str == '' | let b:flines=a:items | return | en
+
+    if (g:svnj_fuzzy_search == 1)
+        if has('python') && !g:svnj_fuzzy_vim
+            call s:pyMatch(a:items, str, a:limit)
+            let b:flines = split(b:slst, "\n")
+            let b:flines = b:flines[ : g:svnj_max_buf_lines]
+            unlet! b:slst
+        else
+            try | call s:vimMatch(a:items, str, a:limit) 
+            catch | call s:vimMatch_old(a:items, str, a:limit) | endt
+        endif
+    else
+        call s:vimMatch_old(a:items, str, a:limit)
+    endif
+endf
+
 fun! s:pyMatch(items, str, limit)
 python << EOF
 import vim, re
+import traceback
 vim.command("let b:slst = ''")
 items = vim.eval('a:items')
 astr = vim.eval('a:str')
 lowAstr = astr.lower()
 limit = int(vim.eval('a:limit'))
 #rez = vim.bindeval('s:rez') #Oops supported after 7.3+ or something
-rez = []
 
 regex = ''
+fregex = ''
 for c in lowAstr[:-1]:
-    regex += c + '[^' + c + ']*'
+    regex += c + '[^' + c + ']*?'
+    fregex += c + '[^' + c + ']*'
 else:
     regex += lowAstr[-1]
+    fregex += lowAstr[-1]
 
-res = []
-prog = re.compile(regex)
-for line in items:
-    result = prog.search(line.lower())
-    if result:
-        score = 1000.0 / ((1 + result.start()) * (result.end() - result.start() + 1))
-        res.append((score, line))
+try:
+    matches = []
+    res = []
+    prog = re.compile(regex)
+    for line in items:
+        lowline = line.lower()
+        result = prog.findall(lowline)
+        if result:
+            result = result[-1]
+            mstart = lowline.rfind(result)
+            mend = mstart + len(result)
+            mlen = mend - mstart
+            score = len(line) * (mlen)
+            res.append((score, line, result))
 
-sortedlist = sorted(res, key=lambda x: x[0], reverse=True)[:limit]
-sortedlist = [x[1] for x in sortedlist]
+    sortedlist = sorted(res, key=lambda x: x[0], reverse=False)[:limit]
+    sortedlines = [x[1] for x in sortedlist]
 
-rez.extend(sortedlist)
-result = "\n".join(rez) 
+    #matches = [x[2] for x in sortedlist]
+    #matches = list(set(matches))
+    #if matches:
+    #    fregex = "|".join(matches)
 
-vim.command("let s:fregex = '%s'" % regex)
-vim.command("let b:slst = '%s'" % result)
+    result = "\n".join(sortedlines) 
+    try:
+        vim.command("let s:fregex = \"%s\"" % fregex)
+    except:
+        pass
+
+    try:
+        vim.command("let b:slst = \"%s\"" % result)
+    except:
+        pass
+except:
+    pass
 
 del sortedlist
-del rez
+del sortedlines
 del res
 del result
 del items
 EOF
 endf
 
-fun! s:filterContents(items, str, limit)
-    let b:flines = []
-    let s:fregex = ''
-    let wchars = ['*', '\', '~', '@', '%', '(', ')', '[', ']', '{', '}', "\'"] 
-
-    let str = ""
-    for i in range(0, len(a:str)) "TODO convert to substitute regex :(
-        let str = index(wchars, a:str[i]) < 0 ?  str . a:str[i] : str
+fun! s:vimMatch(clines, fltr, limit)
+    let s:fregex = ""
+    let ranked = {}
+    for idx in range(0, len(a:fltr)-2)
+        let s:fregex = s:fregex . a:fltr[idx]  . '[^'  . a:fltr[idx]  . ']*'
     endfor
-
-    if str == '' | let b:flines=a:items | return | en
-    if (g:svnj_fuzzy_search == 1)
-        call s:pyMatch(a:items, str, a:limit)
-        let b:flines = split(b:slst, "\n")
-        let b:flines = b:flines[ : g:svnj_max_buf_lines]
-        unlet! b:slst
-    else
-       call s:vimMatch(a:items, str, a:limit)
-    endif
+    let s:fregex = s:fregex . a:fltr[len(a:fltr)-1]
+    let s:fregex = '\v\c'.s:fregex
+    for line in a:clines
+        let matched = matchstr(line, s:fregex)
+        if len(matched)
+            let mstart = match(line, s:fregex)
+            let mend = mstart + len(matched)
+            let score = len(line) * (mend - mstart + 1)
+            let rlines = get(ranked, score, [])
+            call add(rlines, line)
+            let ranked[score] = rlines
+        endif
+    endfor
+    let b:flines = []
+    for key in sort(keys(ranked), 'svnj#utils#sortConvInt')
+        call extend(b:flines, ranked[key])
+    endfor
+    let b:flines = b:flines[:a:limit]
+    unlet! ranked
 endf
 
-fun! s:vimMatch(clines, fltr, limit)
+fun! s:vimMatch_old(clines, fltr, limit)
     let b:flines = filter(copy(a:clines),
                 \ 'strlen(a:fltr) > 0 ? stridx(v:val, a:fltr) >= 0 : 1')
     let b:flines = b:flines[ : g:svnj_max_buf_lines]
-    let s:fregex = ''
+    let s:fregex = ""
 endf
 "2}}}
 
