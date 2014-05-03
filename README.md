@@ -17,7 +17,7 @@ Support for browsing the repository, working copy, bookmarks.
 ![svnlogbranches][6]
 
 ##Supported OS
-MacOSX/Linux
+MacOSX/Linux/Windows
 
 ##Supported operations
 
