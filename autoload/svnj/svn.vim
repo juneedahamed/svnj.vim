@@ -25,12 +25,14 @@ endf
 "2}}}
 
 fun! svnj#svn#issvndir(absfpath) "{{{2
-    let fileurl = a:absfpath
-    let svncmd = 'svn info --non-interactive ' . a:absfpath
-    let nodekindline = s:matchShellOutput(svncmd, "^Node Kind:")
-    if len(nodekindline) > 0
-        return matchstr(nodekindline, "directory") != ""
-    endif
+    try
+        let fileurl = a:absfpath
+        let svncmd = 'svn info --non-interactive ' . a:absfpath
+        let nodekindline = s:matchShellOutput(svncmd, "^Node Kind:")
+        if len(nodekindline) > 0
+            return matchstr(nodekindline, "directory") != ""
+        endif
+    catch | retu 0 | endtry
     return 0
 endf
 "2}}}
