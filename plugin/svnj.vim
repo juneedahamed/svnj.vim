@@ -26,8 +26,8 @@ com! SVNBrowseBookMarks call svnj#brwsr#SVNBrowseMarked()
 
 com! -n=* -com=dir SVNStatus  call svnj#status#SVNStatus(<f-args>)
 
-com! -n=? -com=file SVNLog  call svnj#log#SVNLog(<q-args>)
-com! -n=? -com=dir SVNCommits call svnj#cmmit#SVNCommits(<q-args>)
+com! -n=* -com=file SVNLog  call svnj#log#SVNLog(<f-args>)
+com! -n=* -com=dir SVNCommits call svnj#cmmit#SVNCommits(<f-args>)
 com! -n=? -com=dir SVNBrowseRepo call svnj#brwsr#SVNBrowseRepo(<q-args>)
 com! -n=? -com=dir SVNBrowseWorkingCopy call svnj#brwsr#SVNBrowseWC(0, <q-args>)
 com! -n=? -com=dir SVNBrowseWorkingCopyRec call svnj#brwsr#SVNBrowseWC(1, <q-args>)

@@ -60,6 +60,12 @@ fun! svnj#SVNInfo()
 endf
 "2}}}
 
+fun! svnj#home()
+    let jwinnr = bufwinnr('svnj_window')
+    if jwinnr > 0
+        silent! exe  jwinnr . 'wincmd w'
+    endif
+endf
 
 "init/exit {{{2
 fun! svnj#doexit() 
@@ -67,9 +73,13 @@ fun! svnj#doexit()
 endf
 
 fun! svnj#prepexit()
-    let s:endnow = 1
-    call svnj#stack#clear()
-    call svnj#select#clear()
+    if winj#isploop() 
+        let s:endnow = 1
+        call svnj#stack#clear()
+        call svnj#select#clear()
+    else
+        call svnj#select#clear()
+    endif
     return 1
 endf
 

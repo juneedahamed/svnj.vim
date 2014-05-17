@@ -18,21 +18,24 @@ let [s:topkey, s:topdscr] = svnj#utils#topkey()
 let [s:ctrEntkey, s:ctrEntDescr] = svnj#utils#CtrlEntReplace('NoSplit')
 fun! s:logops()
     return { 
-                \ "\<Enter>"   : ['Ent:Diff', 'svnj#gopshdlr#openFile', 'winj#diffFile'],
-                \ s:ctrEntkey  : [s:ctrEntDescr, 'svnj#gopshdlr#openFile', 'winj#newBufOpen'],
-                \ "\<C-o>"     : ['C-o:Open', 'svnj#gopshdlr#openFile', 'winj#openRepoFileVS'],
-                \ "\<C-w>"     : ['C-w:Wrap!', 'svnj#gopshdlr#toggleWrap'],
-                \ "\<C-u>"     : ['C-u:Up', 'svnj#stack#pop'],
-                \ "\<C-a>"     : ['C-a:Afiles', 'svnj#log#affectedfiles'],
-                \ s:topkey     : [s:topdscr, 'svnj#stack#top'],
-                \ s:selectkey  : [s:selectdscr, 'svnj#gopshdlr#select'],
+                \ "\<Enter>"   : {"bop":"<enter>", "dscr":'Ent:Diff', "fn":'svnj#gopshdlr#openFile', "args":['winj#diffFile']},
+                \ s:ctrEntkey  : {"bop":"<c-enter>", "dscr":s:ctrEntDescr, "fn":'svnj#gopshdlr#openFile', "args":['winj#newBufOpen']},
+                \ "\<C-v>"     : {"bop":"<c-v>", "dscr":'C-v:VS', "fn":'svnj#gopshdlr#openFile', "args":['winj#openVS']},
+                \ "\<C-w>"     : {"bop":"<c-w>", "dscr":'C-w:Wrap!', "fn":'svnj#gopshdlr#toggleWrap'},
+                \ "\<C-u>"     : {"bop":"<c-u>", "dscr":'C-u:Up', "fn":'svnj#stack#pop'},
+                \ "\<C-a>"     : {"bop":"<c-a>", "dscr":'C-a:Afiles', "fn":'svnj#log#affectedfiles'},
+                \ "\<C-i>"     : {"bop":"<c-i>", "dscr":'C-i:Info', "fn":'svnj#gopshdlr#info'},
+                \ s:topkey     : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
+                \ s:selectkey  : {"bop":"<c-space>", "dscr":s:selectdscr, "fn":'svnj#gopshdlr#select'},
+                \ "\<C-s>"      : {"dscr":'C-s:stick!', "fn":'winj#hidePrompt'},
                 \ }
 endf
 "3}}}
 
 "Key mappings for flist {{{3
 fun! s:flistops()
-   return { "\<Enter>"  : ['Ent:Select', 'svnj#log#flistSelected']}
+   return { "\<Enter>"  : {"bop":"<enter>","dscr":'Ent:Select', "fn":'svnj#log#flistSelected'},
+               \ }
 endf
 "3}}}
 
@@ -40,21 +43,22 @@ endf
 fun! svnj#log#SVNLog(...)
     try
         call svnj#init()
-        let tfile = a:0>0 && a:1 != "" ? a:1 : svnj#utils#bufFileAbsPath()
+        let [target, numlogs] = svnj#utils#parseTargetAndNumLogs(a:000)
     catch
         let ldict = svnj#dict#new("SVN Log")
         call svnj#dict#addErr(ldict, 'Failed ', v:exception)
         return winj#populateJWindow(ldict)
         unlet! ldict
     endtry
-    call svnj#log#logs(tfile, 'winj#populateJWindow', 1)
+    call svnj#log#logs(target, numlogs, 'winj#populateJWindow', 1)
 endf
 
-fun! svnj#log#logs(lfile, populatecb, needLCR)
+fun! svnj#log#logs(lfile, maxlogs, populatecb, needLCR)
     let s:ldict = svnj#dict#new("SVN Log")
     try
         let s:ldict.meta = svnj#svn#getMeta(a:lfile)
-        let [entries, s:ldict.meta.cmd] = svnj#svn#logs(s:ldict.meta.url)
+        let [entries, s:ldict.meta.cmd] = svnj#svn#logs(a:maxlogs,
+                    \ s:ldict.meta.url)
         call svnj#dict#addEntries(s:ldict, 'logd', entries, s:logops())
         call s:logMenus(s:ldict.meta.url)
         if a:needLCR
@@ -63,7 +67,8 @@ fun! svnj#log#logs(lfile, populatecb, needLCR)
         else
             call s:addToTitle(s:ldict.meta.url, 0)
         endif
-        call svnj#stack#push('svnj#log#logs', [a:lfile, 'winj#populate', a:needLCR])
+        call svnj#stack#push('svnj#log#logs', [a:lfile, a:maxlogs, 
+                    \ 'winj#populate', a:needLCR])
     catch
         call svnj#dict#addErr(s:ldict, 'Failed ', v:exception)
     endtry
@@ -87,9 +92,12 @@ fun! s:logMenus(url)
         call add(menus, svnj#dict#menuItem("List Branches",
                     \'svnj#log#listTopBranchURLs', "trunk2branch"))
 
-    elseif exists('g:p_burls') "TODO
+    elseif exists('g:p_burls') && g:svnj_warn_branch_log 
         call svnj#dict#addErr(s:ldict, 'Failed to get branches/trunk',
-                    \ ' use :help g:svnj_branch_url')
+                    \ ' use :help g:svnj_branch_url or ' .
+                    \ ' set g:svnj_warn_branch_log=0 at .vimrc' . 
+                    \ ' to disable this message')
+
     endif
     call add(menus, svnj#dict#menuItem("Browse", 'svnj#log#browse', ''))
     call svnj#dict#addEntries(s:ldict, 'menud', menus, svnj#gopshdlr#menuops())
@@ -119,7 +127,7 @@ fun! svnj#log#listFilesFrom(key)
         let fileurl = svnj#svn#validateSVNURLInteractive(fileurl)
         let s:ldict.meta.url = fileurl
         let s:ldict.title = fileurl
-        let [entries, s:ldict.meta.cmd] = svnj#svn#logs(s:ldict.meta.url)
+        let [entries, s:ldict.meta.cmd] = svnj#svn#logs(g:svnj_max_logs, s:ldict.meta.url)
         call svnj#dict#addEntries(s:ldict, 'logd', entries, s:logops())
     catch
         call svnj#utils#dbgHld("At listFilesFrom", v:exception)

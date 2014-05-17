@@ -12,9 +12,25 @@ fun! svnj#svn#info(url) "{{{2
 endf
 "2}}}
 
+fun! svnj#svn#infolog(url) "{{{2
+    let result = ""
+    try
+        let svncmd = 'svn info --non-interactive -' . a:url
+        let result = result . svnj#utils#execShellCmd(svncmd)
+        let svncmd = 'svn log --non-interactive -' . a:url
+        let result = result . svnj#utils#execShellCmd(svncmd)
+    catch
+        call svnj#utils#dbgHld("svnj#svn#infolog", v:exception)
+        let result = v:exception
+    endtry
+    return result
+endf
+"2}}}
+
+
 fun! svnj#svn#url(absfpath) "{{{2
     let fileurl = a:absfpath
-    let svncmd = 'svn info --non-interactive ' . a:absfpath
+    let svncmd = 'svn info --non-interactive ' . fnameescape(svnj#utils#expand(a:absfpath))
     let urllines = s:matchShellOutput(svncmd, "^URL")
     if len(urllines) > 0
         let fileurl = substitute(urllines[0], 'URL: ', '', '')
@@ -26,8 +42,7 @@ endf
 
 fun! svnj#svn#issvndir(absfpath) "{{{2
     try
-        let fileurl = a:absfpath
-        let svncmd = 'svn info --non-interactive ' . a:absfpath
+        let svncmd = 'svn info --non-interactive ' . fnameescape(svnj#utils#expand(a:absfpath))
         let nodekindline = s:matchShellOutput(svncmd, "^Node Kind:")
         if len(nodekindline) > 0
             return matchstr(nodekindline, "directory") != ""
@@ -50,7 +65,7 @@ endf
 "2}}}
 
 fun! svnj#svn#getMetaFS(fileabspath) "{{{2
-    let url = expand(a:fileabspath)
+    let url = a:fileabspath
     let metad = {}
     let metad.origurl = url
     let metad.url = url
@@ -198,7 +213,7 @@ fun! svnj#svn#list(url, rec, ignore_dirs)  "{{{2
     if a:rec
         let shelloutlist = s:globsvnrec(a:url)
     else
-        let svncmd = 'svn list --non-interactive ' . a:url
+        let svncmd = 'svn list --non-interactive ' . fnameescape(svnj#utils#expand(a:url))
         let shellout = svnj#utils#execShellCmd(svncmd)
         let shelloutlist = split(shellout, '\n')
         unlet! shellout
@@ -228,8 +243,8 @@ fun! s:globsvnrec(url)
         try
             let curdir = remove(tdirs, 0)
             call svnj#utils#showConsoleMsg("Fetching files from repo : " . curdir, 0)
-            let svncmd = 'svn list --non-interactive ' .
-                        \ svnj#utils#joinPath(burl, curdir)
+            let furl = svnj#utils#joinPath(burl, curdir)
+            let svncmd = 'svn list --non-interactive ' . fnameescape(svnj#utils#expand(furl))
             let flist = split(svnj#utils#execShellCmd(svncmd), "\n")
             let [tfiles, tdirs2] =  s:filedirs(curdir, flist)
             call extend(files, tfiles)
@@ -257,9 +272,9 @@ fun! s:filedirs(curdir, flist)
 endf
 "2}}}
 
-fun! svnj#svn#logs(svnurl) "{{{2
-    let svncmd = 'svn log --non-interactive -l ' . g:svnj_max_logs . 
-                \ ' ' . a:svnurl
+fun! svnj#svn#logs(maxlogs, svnurl) "{{{2
+    let svncmd = 'svn log --non-interactive -l ' . a:maxlogs .
+                \ ' ' . fnameescape(svnj#utils#expand(a:svnurl))
     let shellout = svnj#utils#execShellCmd(svncmd)
     let shellist = split(shellout, '\n')
     unlet! shellout

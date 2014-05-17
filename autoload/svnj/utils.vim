@@ -25,7 +25,7 @@ fun! svnj#utils#getErrSyn()
 endf
 "2}}}
 
-fun! svnj#utils#keysCurBuffLines()
+fun! svnj#utils#keysCurBuffLines() "{{{2
     let keys = []
     for i in range(1, line('$'))
         let [key, value] = svnj#utils#extractkey(getline(i))
@@ -33,8 +33,9 @@ fun! svnj#utils#keysCurBuffLines()
     endfor
     return keys
 endf
+"2}}}
 
-fun! svnj#utils#extractkey(line)
+fun! svnj#utils#extractkey(line) "{{{2
     if matchstr(a:line, g:svnj_key_patt) != ""
         let tokens = split(a:line, ':')
         if len(tokens) > 1 
@@ -45,25 +46,47 @@ fun! svnj#utils#extractkey(line)
     endif
     return [line("."), svnj#utils#strip(a:line)]
 endf
+"2}}}
 
-fun! svnj#utils#bufFileAbsPath()
+fun! svnj#utils#bufFileAbsPath() "{{{2
     let fileabspath = expand('%:p')
     if fileabspath ==# ''
         throw 'Error No file in buffer'
     endif
     return fileabspath
 endf
+"2}}}
 
-fun! svnj#utils#joinPath(v1, v2)
+fun! svnj#utils#expand(path) "{{{2
+    let path = expand(a:path)
+    return  path == ""? a:path : path
+endf
+"2}}}
+
+fun! svnj#utils#isdir(path) "{{{2
+    return isdirectory(svnj#utils#expand(fnameescape(a:path)))
+endf
+"2}}}
+
+fun! svnj#utils#localFS(fname) "{{{2
+    let result = (filereadable(fnameescape(a:fname)) || 
+                \ svnj#utils#isdir(a:fname))
+    return result
+endf
+"2}}}
+
+fun! svnj#utils#joinPath(v1, v2) "{{{2
     let sep = ""
     if len(a:v1) == 0 | retu a:v2 | en
     if matchstr(a:v1, "/$") != '/' 
         let sep = "/"
     endif
-    return a:v1 . sep . a:v2
+    let path = svnj#utils#strip(a:v1) . sep . svnj#utils#strip(a:v2)
+    return path
 endf
+"2}}}
 
-fun! svnj#utils#globpath(dir)
+fun! svnj#utils#globpath(dir) "{{{2
     try 
         setl nomore
     catch | endt
@@ -86,8 +109,9 @@ fun! svnj#utils#globpath(dir)
     call svnj#caop#cache("wc", cdir, files)
     return files
 endf
+"2}}}
 
-fun! s:filedirs(flist, slinenum)
+fun! s:filedirs(flist, slinenum) "{{{2
     let [files, dirs] = [[], []]
     let linenum = a:slinenum
     let strip_pat = '^\./' 
@@ -104,8 +128,9 @@ fun! s:filedirs(flist, slinenum)
     endfor
     return [files, dirs]
 endf
+"2}}}
 
-fun! svnj#utils#formatBrowsedEntries(entries)
+fun! svnj#utils#formatBrowsedEntries(entries) "{{{2
     let entries = []
     let linenum = 0
     for entry in a:entries
@@ -115,76 +140,111 @@ fun! svnj#utils#formatBrowsedEntries(entries)
     endfor
     return entries
 endf
+"2}}}
 
-fun! svnj#utils#strip(input_string)
+fun! svnj#utils#parseTargetAndNumLogs(arglist) "{{{2
+    let [target, numlogs] = ["", ""]
+    try
+        for thearg in a:arglist
+            let thearg = svnj#utils#strip(thearg)
+            let tnumlogs = matchstr(thearg, "^\\d\\+$")
+            if tnumlogs != '' && numlogs == ""
+                let numlogs = tnumlogs
+                cont
+            endif
+            let target = thearg
+        endfor
+    catch 
+        call svnj#utils#dbgHld("svnj#utils#parseTargetAndNumLogs", v:exception) 
+    endt
+    try
+        if target == "" | let target = svnj#utils#bufFileAbsPath() | en
+    catch| let target = getcwd() | endt
+
+    if numlogs == "" | let numlogs = g:svnj_max_logs | en
+    retu [fnameescape(target), numlogs]
+endf
+"2}}}
+
+fun! svnj#utils#strip(input_string) "{{{2
     return substitute(a:input_string, '^\s*\(.\{-}\)\s*$', '\1', '')
 endf
+"2}}}
 
-fun! svnj#utils#getparent(url)
+fun! svnj#utils#getparent(url) "{{{2
     let url = matchstr(a:url, "/$") == '/' ? a:url[:-2] : a:url
     let url = fnamemodify(url, ":h")
     let url = url . "/"
     return url
 endf
+"2}}}
 
-fun! svnj#utils#isSvnDirReg(url)
+fun! svnj#utils#isSvnDirReg(url) "{{{2
     let slash = matchstr(a:url, "/$")
     return slash == "/" 
 endf
+"2}}}
 
-fun! svnj#utils#sortConvInt(i1, i2)
+fun! svnj#utils#sortConvInt(i1, i2) "{{{2
     retu a:i1 - a:i2
 endf
+"2}}}
 
-fun! svnj#utils#sortftime(f1, f2)
+fun! svnj#utils#sortftime(f1, f2) "{{{2
     retu getftime(a:f1) - getftime(a:f2)
 endf
+"2}}}
 
-fun! svnj#utils#showErrorConsole(msg)
+fun! svnj#utils#showErrorConsole(msg) "{{{2
     echohl Error | echo a:msg | echohl None
     let ign = input('Press Enter to coninue :')
 endf
+"2}}}
 
-fun! svnj#utils#showConsoleMsg(msg, wait)
+fun! svnj#utils#showConsoleMsg(msg, wait) "{{{2
     redr | echohl special | echon a:msg | echohl None
     if a:wait
         let x = input("Press Enter to continue :")
     endif
 endf
+"2}}}
 
-fun! svnj#utils#errDict(title, emsg)
+fun! svnj#utils#errDict(title, emsg) "{{{2
     let edict = svnj#dict#new(a:title)
     let edict.meta = svnj#svn#blankMeta()
     call svnj#dict#addErr(edict, a:emsg, "")
     retu edict
 endf
+"2}}}
 
-fun! svnj#utils#dbgHld(title, args)
+fun! svnj#utils#dbgHld(title, args) "{{{2
     if g:svnj_enable_debug
         echo a:args
         let x = input(a:title)
     endif
 endf
+"2}}}
 
-fun! svnj#utils#execShellCmd(cmd)
+fun! svnj#utils#execShellCmd(cmd) "{{{2 
     let shellout = system(a:cmd)
     if v:shell_error != 0
         throw 'FAILED CMD: ' . shellout
     endif
     return shellout
 endf
+"2}}}
 
 "browse dirs {{{2
 fun! svnj#utils#listFiles(url, rec, igndir)
     let cwd = getcwd()
-    sil! exe 'lcd ' . a:url
+    sil! exe 'lcd ' . fnameescape(a:url)
     let entries = a:rec ? svnj#utils#globpath(".") :
-                \ s:lstNonRec(a:url, a:igndir)
-    sil! exe 'lcd ' . cwd
+                \ s:lstNonRec(a:igndir)
+    sil! exe 'lcd ' . fnameescape(cwd)
     return entries
 endf
 
-fun! s:lstNonRec(url, igndir)
+fun! s:lstNonRec(igndir)
     let fileslst = split(globpath('.', "*"), '\n')
     let entries = []
     let strip_pat = '^\./' 
@@ -211,8 +271,8 @@ fun! svnj#utils#getEntryKeys()
 endf
 
 fun! svnj#utils#selkey()
-    return has('gui_running') ? ["\<C-Space>", 'C-space:Mark'] :
-                \ ["\<C-H>", 'C-H:Mark']
+    return has('gui_running') ? ["\<C-Space>", 'C-space:Sel'] :
+                \ ["\<C-z>", 'C-z:Sel']
 endf
 
 fun! svnj#utils#topkey()
@@ -227,15 +287,12 @@ endf
 
 fun! svnj#utils#topop()
     let [topkey, topdscr] = svnj#utils#topkey()
-    return {topkey : [topdscr, 'svnj#stack#top'],}
+    return {topkey : {"bop":"<c-t>", "dscr":topdscr, "fn":'svnj#stack#top'}}
 endf
 
 fun! svnj#utils#upop()
-    return {"\<C-u>": ['C-u:Up', 'svnj#stack#pop'],}
-endf
-
-fun! svnj#utils#cmdop()
-    return {"\<C-y>": ['C-y:Cmd', 'svnj#gopshdlr#cmd'],}
+    return {"\<C-u>": {"bop":"<c-u>", "dscr":'C-u:Up', "fn":'svnj#stack#pop'}}
 endf
 "2}}}
+
 "1}}}

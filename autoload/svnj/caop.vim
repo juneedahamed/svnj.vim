@@ -25,7 +25,10 @@ fun! svnj#caop#cache(type, path, entries)
     if a:type == "wc" && !g:svnj_browse_workingcopy_cache | retu 1 | en
     if a:type == "bm" && !g:svnj_browse_bookmarks_cache | retu 1 | en
 
-    try | call writefile(a:entries, svnj#caop#fname(a:path)) | retu 1
+    try 
+        let fname = svnj#caop#fname(a:path)
+        call writefile(a:entries, fname)
+        retu 1
     catch | call svnj#utils#dbgHld("At writecache:", v:exception) | endt
     call svnj#caop#purge()
     retu 0
@@ -60,7 +63,7 @@ endf
 "helpers {{{2
 fun! svnj#caop#fname(path)
     let path = a:path
-    if matchstr(path, "/$") == ""
+    if matchstr(path, "/$") == ''
         let path = path . "/" 
     endif
     retu g:svnj_cache_dir . "/" . substitute(path, "[\\:|\\/|\\.]", "_", "g") . "svnj_cache.txt"

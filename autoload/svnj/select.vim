@@ -20,7 +20,7 @@ fun! svnj#select#add(key, line, path, revision)
     let s:selectd[a:key] = {'line': a:line, 'path': a:path,
                 \ 'revision': a:revision}
     call svnj#select#sign(a:key, 1)
-    return 2
+    return 2 "Donot clear fltr
 endf
 
 fun! svnj#select#remove(key)
@@ -38,13 +38,14 @@ endf
 fun! svnj#select#openFiles(callback, maxopen)
     let cnt = 0
     for [key, sdict] in items(s:selectd)
+        if key == 'err' | cont | en
         if svnj#utils#isSvnDirReg(sdict.path) | cont | en
         let cnt += 1
         call call(a:callback, [sdict.revision, sdict.path])
         if cnt == a:maxopen | break | en
     endfor
     if cnt != 0 | call svnj#prepexit() | en
-    return cnt
+    return 2 "Donot clear fltr
 endf
 "2}}}
 
@@ -60,7 +61,7 @@ fun! svnj#select#book(url)
         call s:signbmark(g:bmarkssid, 1)
     endif
     call svnj#caop#cachebmarks()
-    return 2
+    return 2 "Donot clear fltr
 endf
 
 fun! svnj#select#booked()
@@ -120,6 +121,7 @@ fun! s:resign(dict)
                     exe 'silent! sign place ' . key . ' line=' . linenum . scmdpost
                     let dosel -= 1
                 endif
+                let path = svnj#utils#strip(path)
                 if has_key(g:bmarks, path)
                     exe 'silent! sign place ' . g:bmarks[path] . ' line=' . linenum . bcmdpost
                     let dobmrks -= 1

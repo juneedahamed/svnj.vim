@@ -7,24 +7,27 @@
 "Key mappings  menuops {{{2
 let [s:topkey, s:topdscr] = svnj#utils#topkey()
 fun! svnj#gopshdlr#menuops()
-   return { "\<Enter>" : ['Enter:Open', 'svnj#gopshdlr#handleMenuOps'],
-               \ "\<C-u>" : ['C-u:Up', 'svnj#stack#pop'],
-               \ s:topkey : [s:topdscr, 'svnj#stack#top']}
+   return { "\<Enter>" : {"bop":"<enter>", "dscr":'Enter:Open', "fn":'svnj#gopshdlr#handleMenuOps'},
+               \ "\<C-u>" : {"bop":"<c-u>", "dscr":'C-u:Up', "fn":'svnj#stack#pop'},
+               \ s:topkey : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
+               \ }
 endf
 "2}}}
 
 fun! svnj#gopshdlr#handleMenuOps(argdict)
     let [adict, akey] = [a:argdict.dict, a:argdict.key]
+    if akey == 'err' | retu 2 | en
     return call(adict.menud.contents[akey].callback, [akey])
 endf
 
 fun! svnj#gopshdlr#toggleWrap(...)
     setl wrap! 
-    return 2 
+    return 2 "Donot clear fltr
 endf
 
 fun! svnj#gopshdlr#openFile(argdict)
     let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
+    if akey == 'err' | retu 2 | en
     if has_key(adict, 'logd') && has_key(adict.logd.contents, akey)
         let revision = adict.logd.contents[akey].revision
         call svnj#select#add(akey, adict.logd.contents[akey].line,
@@ -39,12 +42,12 @@ fun! svnj#gopshdlr#openFile(argdict)
         if !svnj#select#exists(akey) | call svnj#gopshdlr#select(a:argdict) | en
     endif
 
-    let cnt = svnj#select#openFiles(a:argdict.opt[0], g:svnj_max_open_files)
-    retu cnt
+    retu svnj#select#openFiles(a:argdict.opt[0], g:svnj_max_open_files)
 endf
 
 fun! svnj#gopshdlr#openAllFiles(argdict)
     let [adict, akey] = [a:argdict.dict, a:argdict.key]
+    if akey == 'err' | retu 2 | en
     if has_key(adict, 'statusd') && len(adict.statusd.contents) > 0
         for key in keys(adict.statusd.contents)
             call svnj#gopshdlr#select(adict, key, a:line)
@@ -59,12 +62,14 @@ endf
 
 fun! svnj#gopshdlr#openFltrdFiles(argdict)
     let [adict, akey] = [a:argdict.dict, a:argdict.key]
+    if akey == 'err' | retu 2 | en
     call svnj#gopshdlr#selectFltrd(a:argdict)
     retu svnj#select#openFiles(a:argdict.opt[0], g:svnj_max_open_files)
 endf
 
 fun! svnj#gopshdlr#select(argdict)
     let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
+    if akey == 'err' | retu 2 | en
     if svnj#select#remove(akey) | retu 2 | en
     if has_key(adict, 'logd') && has_key(adict.logd.contents, akey)
         retu svnj#select#add(akey, adict.logd.contents[akey].line,
@@ -80,11 +85,12 @@ fun! svnj#gopshdlr#select(argdict)
         retu svnj#select#add(akey, adict.statusd.contents[akey].line,
                     \ adict.statusd.contents[akey].fpath, "")
     endif
-    return 2
+    return 2 "Donot clear fltr
 endf
 
 fun! svnj#gopshdlr#selectFltrd(argdict)
     let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
+    if akey == 'err' | retu 2 | en
     if svnj#select#remove(akey) | retu 1 | en
     if has_key(adict, 'browsed')
         for i in range(1, line('$'))
@@ -106,33 +112,41 @@ fun! svnj#gopshdlr#selectFltrd(argdict)
             endif
         endfor
     endif
-    retu 1
+    return 2 "Donot clear fltr
 endf
 
 fun! svnj#gopshdlr#book(argdict)
-    let [adict, aline] = [a:argdict.dict, a:argdict.line]
+    let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
+    if akey == 'err' | retu 2 | en
     if has_key(adict, 'browsed')
         let pathurl = svnj#utils#joinPath(adict.bparent, aline)
         call svnj#select#book(pathurl)
+    elseif has_key(adict, 'statusd') && has_key(adict.statusd.contents, akey)
+        let fpath = adict.statusd.contents[akey].fpath
+        call svnj#select#book(fpath)
     endif
-    return 1
+    return 2 "Donot clear fltr
 endf
 
 fun! svnj#gopshdlr#info(argdict)
     let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
+    if akey == 'err' | retu 2 | en
     let info = ""
     try
         if  has_key(adict, 'statusd') && has_key(adict.statusd.contents, akey)
             let info =  svnj#svn#info(adict.statusd.contents[akey].fpath)
+        elseif  has_key(adict, 'logd') && has_key(adict.logd.contents, akey)
+            let info =  svnj#svn#infolog(adict.logd.contents[akey].revision . "\ " . adict.meta.url)
         elseif has_key(adict, 'browsed') 
             let url = svnj#utils#joinPath(adict.bparent, aline)
             let info = svnj#svn#info(url)
         endif
-        if info != "" | return svnj#utils#showConsoleMsg(info, 1)|en
+        if info != "" | call svnj#utils#showConsoleMsg(info, 1)|en
+        retu 2 "Donot clear fltr
     catch
         call svnj#utils#showErrorConsole(v:exception)
     endtry
-    retu 1
+    return 2 "Donot clear fltr
 endf
 
 fun! svnj#gopshdlr#displayAffectedFiles(dict, title, slist)
@@ -147,15 +161,18 @@ fun! svnj#gopshdlr#displayAffectedFiles(dict, title, slist)
             call extend(ops, svnj#utils#upop())
             call svnj#dict#addEntries(sdict, 'statusd', a:slist, ops)
         endif
-        call svnj#stack#push('svnj#gopshdlr#displayAffectedFiles', [a:000])
+        call svnj#stack#push('svnj#gopshdlr#displayAffectedFiles', [a:dict, a:title, a:slist])
         call winj#populate(sdict)
     catch
         call svnj#utils#dbgHld("At svnj#gopshdlr#affectedfiles", v:exception)
     endtry
+    return 1
 endf
 
 fun! svnj#gopshdlr#cmd(argdict)
     let [adict, akey] = [a:argdict.dict, a:argdict.key]
-    retu has_key(adict, "meta") && has_key(adict.meta, "cmd") ? 
+    if akey == 'err' | retu 2 | en
+    let x = has_key(adict, "meta") && has_key(adict.meta, "cmd") ? 
                 \ svnj#utils#showConsoleMsg(adict.meta.cmd, 1) : 0
+    retu 2 "Donot clear fltr
 endf

@@ -30,13 +30,15 @@ fun! s:custom()
     let g:svnj_max_logs = get(g:, 'svnj_max_logs', 10)
     let g:svnj_max_open_files = get(g:, 'svnj_max_open_files', 10)
     let g:svnj_max_diff = get(g:, 'svnj_max_diff', 2)
-    let g:svnj_max_buf_lines = get(g:, 'svnj_max_buf_lines', 150)
-    let g:svnj_window_max_size = get(g:, 'svnj_window_max_size', 25)
+    let g:svnj_max_buf_lines = get(g:, 'svnj_max_buf_lines', 80)
+    let g:svnj_window_max_size = get(g:, 'svnj_window_max_size', 20)
     let g:svnj_find_files = get(g:, 'svnj_find_files', 1)
     let g:svnj_warn_log = get(g:, 'svnj_warn_log', 1)
+    let g:svnj_warn_branch_log = get(g:, 'svnj_warn_branch_log', 1)
     let g:svnj_enable_debug = get(g:, 'svnj_enable_debug', 0)
     let g:svnj_browse_max_files_cnt= get(g:, 'svnj_browse_max_files_cnt', 10000)
     let g:svnj_browse_repo_max_files_cnt= get(g:, 'svnj_browse_repo_max_files_cnt', 1000)
+    let g:svnj_sticky_on_start = get(g:, 'svnj_sticky_on_start', 0)
 endf
 "3}}}
 
@@ -56,6 +58,7 @@ fun! s:customize()
     let g:svnj_custom_statusbar_ops_hl = s:get_hl('g:svnj_custom_statusbar_ops_hl', 'Search')
     let g:svnj_custom_statusbar_sel_hl = s:get_hl('g:svnj_custom_statusbar_sel_hl', 'Question')
     let g:svnj_custom_statusbar_ops_hide = get(g:, 'svnj_custom_statusbar_ops_hide', 0)
+    let g:svnj_custom_sticky_hl = s:get_hl('g:svnj_custom_sticky_hl', 'Function')
 endf
 "3}}}
     
@@ -140,6 +143,9 @@ fun! s:fuzzy()
                 \ 100 : eval('g:svnj_fuzzy_search_result_max')
 
     let g:svnj_fuzzy_vim = get(g:, 'svnj_fuzzy_vim', 0) 
+    "if g:svnj_fuzzy_search && !g:svnj_fuzzy_vim && v:version < 704 
+    "    let g:svnj_fuzzy_vim = 0
+    "endif
 endf
 "3}}}
 

@@ -10,12 +10,14 @@
 let [s:selectkey, s:selectdscr] = svnj#utils#selkey()
 fun! s:commitops()
    return { 
-               \ "\<Enter>"  : ['Ent:HEAD', 'svnj#cmmit#showCommits', ':HEAD'],
-               \ "\<C-p>"    : ['C-p:PREV', 'svnj#cmmit#showCommits', ':PREV'],
-               \ "\<C-w>"    : ['C-w:Wrap!', 'svnj#gopshdlr#toggleWrap'],
-               \ "\<C-a>"     : ['C-a:Afiles', 'svnj#cmmit#affectedfiles'],
-               \ "\<C-y>"    : ['C-y:Cmd', 'svnj#gopshdlr#cmd'],
-               \ s:selectkey : [s:selectdscr, 'svnj#cmmit#handleCommitsSelect'],
+               \ "\<Enter>"  :{"bop":"<enter>", "dscr":'Ent:HEAD', "fn":'svnj#cmmit#showCommits', "args":[':HEAD']},
+               \ "\<C-p>"    :{"bop":"<c-p>", "dscr":'C-p:PREV', "fn":'svnj#cmmit#showCommits', "args":[':PREV']},
+               \ "\<C-w>"    :{"bop":"<c-w>", "dscr":'C-w:Wrap!', "fn":'svnj#gopshdlr#toggleWrap'},
+               \ "\<C-a>"    :{"bop":"<c-a>", "dscr":'C-a:Afiles', "fn":'svnj#cmmit#affectedfiles'},
+               \ "\<C-y>"    :{"bop":"<c-y>", "dscr":'C-y:Cmd', "fn":'svnj#gopshdlr#cmd'},
+               \ s:selectkey :{"bop":"<c-space>", "dscr":s:selectdscr, "fn":'svnj#cmmit#handleCommitsSelect'},
+               \ "\<C-s>"    : {"dscr":'C-s:stick!', "fn":'winj#hidePrompt'},
+               \ "\<F5>"     : {"dscr":'F5:redr', "fn":'winj#forceredr'},
                \ }
 endf
 "3}}}
@@ -24,32 +26,30 @@ endf
 fun! svnj#cmmit#SVNCommits(...)
     call svnj#init()
     try
-        let target = a:0>0 && len(a:1) > 0 ? expand(a:1) : svnj#svn#workingRoot()
-        let target = (target == "." || len(target) == 0 ) ?
-                    \ getcwd() : target
-        call svnj#cmmit#svnCommits(target, 'winj#populateJWindow')
+        let [target, numlogs] = svnj#utils#parseTargetAndNumLogs(a:000)
+        call svnj#cmmit#svnCommits(target, numlogs, 'winj#populateJWindow')
         unlet! s:cdict
     catch
         let cdict = svnj#dict#new("SVNCommits")
         call svnj#utils#dbgHld("At SVNCommits", v:exception)
         call svnj#dict#addErr(cdict, 'Failed ', v:exception)
         call winj#populateJWindow(cdict)
-        call cdict.clearme()
+        unlet! cdict
     endtry
 endf
 
-fun! svnj#cmmit#svnCommits(target, cb)
+fun! svnj#cmmit#svnCommits(target, maxlogs, cb)
     let s:cdict = svnj#dict#new("SVNCommits")
     try
         let lastChngdRev = svnj#svn#lastChngdRev(a:target)
         let s:cdict.meta = svnj#svn#getMeta(a:target)
         let s:cdict.title = 'SVNLog '. s:cdict.meta.url . '@' . lastChngdRev
-        let [entries, s:cdict.meta.cmd] = svnj#svn#logs(a:target)
+        let [entries, s:cdict.meta.cmd] = svnj#svn#logs(a:maxlogs, a:target)
         call svnj#dict#addEntries(s:cdict, 'commitsd', entries, s:commitops())
-        call svnj#stack#push('svnj#cmmit#svnCommits', [a:target, 'winj#populate'])
+        call svnj#stack#push('svnj#cmmit#svnCommits', [a:target, a:maxlogs, 'winj#populate'])
         call call(a:cb, [s:cdict])
     catch
-        call svnj#utils#dbgHld("At svnCommits", v:exception)
+        call svnj#utils#dbgHld("At svnj#cmmit#svnCommits", v:exception)
         call svnj#dict#addErr(s:cdict, 'Failed ', v:exception)
         call winj#populateJWindow(s:cdict)
     endtry

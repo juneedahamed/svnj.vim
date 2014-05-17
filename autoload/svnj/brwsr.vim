@@ -17,21 +17,28 @@ let [s:reckey, s:recdscr] = svnj#utils#CtrlEntReplace('Rec')
 "Key mappings for browseops {{{3
 fun! s:browseops()
    return { 
-               \ "\<Enter>"  : ['Ent:Open', 'svnj#brwsr#digin', 0],
-               \ s:reckey    : [s:recdscr, 'svnj#brwsr#digin', 1],
-               \ "\<C-u>"    : ['C-u:Up', 'svnj#brwsr#digout'],
-               \ "\<C-o>"    : ['C-o:OpenAll', 'svnj#gopshdlr#openFltrdFiles', 'winj#newBufOpen'],
-               \ "\<C-d>"    : ['C-d:Diff', 'svnj#gopshdlr#openFile', 'winj#diffFile'],
-               \ "\<C-l>"    : ['C-l:Log', 'svnj#brwsr#fileLogs'],
-               \ "\<C-b>"    : ['C-b:Book', 'svnj#gopshdlr#book'],
-               \ s:topkey    : [s:topdscr, 'svnj#stack#top'],
-               \ "\<C-i>"    : ['C-i:Info', 'svnj#gopshdlr#info'],
-               \ "\<C-a>"    : ['C-a:Afiles', 'svnj#brwsr#affectedfiles'],
-               \ "\<C-r>"    : ['C-r:Refresh', 'svnj#brwsr#refresh'],
-               \ s:selectkey : [s:selectdscr, 'svnj#gopshdlr#select'],
+               \ "\<Enter>"  : {"bop":"<enter>", "dscr":'Ent:Opn', "fn":'svnj#brwsr#digin', "args":[0]},
+               \ s:reckey    : {"bop":"<c-enter>", "dscr":s:recdscr, "fn":'svnj#brwsr#digin', "args":[1]},
+               \ "\<C-u>"    : {"bop":"<c-u>", "dscr":'C-u:Up', "fn":'svnj#brwsr#digout'},
+               \ "\<C-h>"    : {"bop":"<c-h>", "dscr":'C-h:Home', "fn":'svnj#brwsr#root'},
+               \ "\<C-o>"    : {"bop":"<c-o>", "dscr":'C-o:OpnAll', "fn":'svnj#gopshdlr#openFltrdFiles', "args":['winj#newBufOpen']},
+               \ "\<C-v>"    : {"bop":"<c-v>", "dscr":'C-v:VS', "fn":'svnj#gopshdlr#openFile', "args":['winj#openVS']},
+               \ "\<C-d>"    : {"bop":"<c-d>", "dscr":'C-d:Diff', "fn":'svnj#gopshdlr#openFile', "args":['winj#diffFile']},
+               \ "\<C-l>"    : {"bop":"<c-l>", "dscr":'C-l:Log', "fn":'svnj#brwsr#fileLogs'},
+               \ "\<C-b>"    : {"bop":"<c-b>", "dscr":'C-b:Bk', "fn":'svnj#gopshdlr#book'},
+               \ s:topkey    : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
+               \ "\<C-i>"    : {"bop":"<c-i>", "dscr":'C-i:Info', "fn":'svnj#gopshdlr#info'},
+               \ "\<C-a>"    : {"bop":"<c-a>", "dscr":'C-a:Afls', "fn":'svnj#brwsr#affectedfiles'},
+               \ "\<C-r>"    : {"bop":"<c-r>", "dscr":'C-r:Redo', "fn":'svnj#brwsr#refresh'},
+               \ s:selectkey : {"bop":"<c-space>", "dscr":s:selectdscr, "fn":'svnj#gopshdlr#select'},
+               \ "\<C-s>"    : {"dscr":'C-s:stick!', "fn":'winj#hidePrompt'},
+               \ "\<F5>"     : {"dscr":'F5:redr', "fn":'winj#forceredr'},
                \ }
 endf
+"2}}}
+
 "3}}}
+
 
 "Browser {{{2
 fun! svnj#brwsr#SVNBrowse()
@@ -69,7 +76,7 @@ fun! svnj#brwsr#SVNBrowseWC(...)
     try
         call svnj#init()
         let recursive = a:1
-        let url = (a:0 > 1  && isdirectory(a:2)) ? (a:2) : getcwd()
+        let url = (a:0 > 1  && svnj#utils#isdir(a:2)) ? (a:2) : getcwd()
         call svnj#brwsr#svnBrowse(url, "", 0, recursive, 'winj#populateJWindow')
     catch
         call svnj#utils#dbgHld("At svnj#brwsr#SVNBrowseWC", v:exception)
@@ -94,16 +101,15 @@ fun! svnj#brwsr#Menu(populatecb)
                 \ [svnj#dict#menuItem('BookMarks', 'svnj#brwsr#browseBMarksMenuCb', "")], {})
     
     let menuops = { 
-                \ "\<Enter>": ['Enter:Open', 'svnj#brwsr#browseMenuHandler'],
-                \ s:reckey : [s:recdscr, 'svnj#brwsr#browseMenuHandler', "recursive"],
-                \ "\<C-u>": ['C-u:up', 'svnj#stack#pop'],
-                \ s:topkey : [s:topdscr, 'svnj#stack#top'],
+                \ "\<Enter>": {"bop":"<enter>", "dscr":'Enter:Open', "fn":'svnj#brwsr#browseMenuHandler'},
+                \ s:reckey  : {"bop":"<c-enter>", "dscr":s:recdscr, "fn":'svnj#brwsr#browseMenuHandler', "args":["recursive"]},
+                \ "\<C-u>"  : {"bop":"<c-u>", "dscr":'C-u:up', "fn":'svnj#stack#pop'},
+                \ s:topkey  : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
                 \ }
 
     call svnj#dict#addOps(bdict, 'menud', menuops)
     call svnj#stack#push('svnj#brwsr#Menu', ['winj#populate'])
     call call(a:populatecb, [bdict])
-    unlet! bdict
 endf
 
 fun! svnj#brwsr#browseMenuHandler(argdict)
@@ -145,6 +151,7 @@ fun! svnj#brwsr#svnBrowse(url, purl, ignore_dirs, recursive, populatecb)
     let args = s:browsItArgs(a:url, a:purl, a:ignore_dirs, a:recursive, a:populatecb)
     call svnj#stack#push('svnj#brwsr#svnBrowse', 
                 \ [a:url, a:purl, a:ignore_dirs, a:recursive, 'winj#populate'])
+
     call svnj#brwsr#browseIt(args)
 endf
 
@@ -166,7 +173,8 @@ fun! svnj#brwsr#browseIt(args)
         let bdict.meta = svnj#svn#getMetaURL(url)
         let bdict.title = bdict.meta.url
         let bdict.bparent = bdict.meta.url
-        let is_repo = !(filereadable(url) || isdirectory(url))
+        let bdict.brecursive = a:args.recursive
+        let is_repo = !svnj#utils#localFS(url)
         let files_lister = is_repo ? 'svnj#svn#list' : 'svnj#utils#listFiles'
         let entries = call(files_lister, [url, a:args.recursive, a:args.igndirs])
         if empty(entries)
@@ -196,19 +204,40 @@ endf
 "2}}}
 
 "callbacks from window {{{2
+fun! svnj#brwsr#root(argdict)
+    try
+        let bparent = a:argdict.dict.bparent
+        let brecursive = a:argdict.dict.brecursive
+        let url = ""
+
+        if svnj#utils#isdir(bparent) 
+            let wcrp = svnj#svn#workingCopyRootPath()
+            let url = (wcrp != bparent) ? wcrp : expand("$HOME")
+        endif
+
+        if url == "" && svnj#svn#issvndir(getcwd())
+            let url = svnj#svn#repoRoot()
+        endif
+
+        if url == "" | let url = expand("$HOME") | en
+        call svnj#brwsr#svnBrowse(url, "", 0, brecursive, 'winj#populate')
+        return 1
+    catch | call svnj#utils#dbgHld("At svnj#brwsr#root", v:exception) | endt
+    return 0
+endf
+
 fun! svnj#brwsr#digin(argdict)
     try
         let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
         let arec = a:argdict.opt[0]
         let newurl = svnj#utils#joinPath(adict.bparent, aline)
-        if isdirectory(newurl) || svnj#svn#issvndir(newurl)
+        if svnj#utils#isdir(newurl) || svnj#svn#issvndir(newurl)
             let args = {'url' : newurl, 'purl': adict.bparent, 'igndirs' : 0,
                         \ 'recursive' : arec, 'populatecb' : 'winj#populate'}
             return svnj#brwsr#browseIt(args)
         else
             call svnj#select#add(akey, aline, newurl, "")
-            call svnj#select#openFiles('winj#newBufOpen', g:svnj_max_open_files)
-            return 1
+            retu svnj#select#openFiles('winj#newBufOpen', g:svnj_max_open_files)
         endif
     catch | call svnj#utils#dbgHld("At svnj#brwsr#digin", v:exception) | endt
     return 0
@@ -218,13 +247,13 @@ fun! svnj#brwsr#digout(argdict)
     try
         let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
         let newurl = svnj#utils#getparent(adict.bparent)
-        let is_repo = !(filereadable(newurl) || isdirectory(newurl))
+        let is_repo = !svnj#utils#localFS(newurl)
         if (is_repo && !svnj#svn#validURL(newurl)) || (!is_repo && newurl == "//")
             call svnj#dict#addErrUp(adict, "Looks, like reached tip of the SVN/FS", "")
             call winj#populate(adict) | retu 0
         endif
         let args = {'url' : newurl, 'purl': adict.bparent, 'igndirs' : 0,
-                    \ 'recursive' : 0, 'populatecb' : 'winj#populate'}
+                    \ 'recursive' : adict.brecursive, 'populatecb' : 'winj#populate'}
         return svnj#brwsr#browseIt(args)
     catch | call svnj#utils#dbgHld("Exception at digout", v:exception)
     endtry
@@ -244,7 +273,7 @@ fun! svnj#brwsr#fileLogs(argdict)
 
         let pathurl = svnj#utils#joinPath(adict.bparent, aline)
         if svnj#svn#validURL(pathurl)
-            call svnj#log#logs(pathurl, 'winj#populate', 0)
+            call svnj#log#logs(pathurl, g:svnj_max_logs, 'winj#populate', 0)
         else 
             call svnj#utils#showErrorConsole("Failed, May not be a valid svn entity")
         endif

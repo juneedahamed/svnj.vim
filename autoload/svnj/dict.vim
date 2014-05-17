@@ -21,6 +21,8 @@ fun! svnj#dict#new(...)
     let obj.idx = 0
     let obj.opdsc = ''
     let obj.bparent = ""
+    let obj.brecursive = 0
+    let obj.hasbufops = 0
     if a:0 >= 2 | call extend(obj, a:2) | en
     return obj
 endf
@@ -97,10 +99,13 @@ endf
 
 fun! s:dict.setOpsDescr() dict
     let ops=""
-    for [key, vlst] in items(self.getAllOps())
-        let ops = ops . vlst[0] . ' '
+    let hasbufops = 0
+    for [key, thedict] in items(self.getAllOps())
+        let ops = ops . thedict.dscr . ' '
+        if has_key(thedict, "bop") | let hasbufops = 1 | en
     endfor
     let self.opdsc = ops
+    let self.hasbufops = hasbufops
 endf
 
 fun! s:dict.hasError() dict
@@ -156,6 +161,9 @@ fun! svnj#dict#addErrTop(dict, descr, msg)
 endf
 
 fun! svnj#dict#addOps(dict, key, ops)
+    if !has('gui_running') && has_key(a:ops, "\<C-s>")
+        call remove(a:ops, "\<C-s>")
+    endif
     if !has_key(a:dict, a:key) | th a:key.' Not Present' | en
     if len(a:ops) > 0 | call extend(a:dict[a:key].ops, a:ops) | en
     call a:dict.setOpsDescr()

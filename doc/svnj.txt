@@ -29,7 +29,8 @@ COMMANDS                                                         *svnj-commands*
 
 :SVNBlame                                                            *SVNBlame*
 
-  Vertically splits the blame info for the file in bufffer
+  Vertically splits the blame info for the file in bufffer. Scrollbinds to the
+  file.
 
 :SVNInfo                                                            *SVNInfo*
 
@@ -43,7 +44,7 @@ COMMANDS                                                         *svnj-commands*
   diff with the browsed file.
 
 
-:SVNStatus                                                          *SVNStatus*
+:SVNStatus [Arguments]                                             *SVNStatus* 
 
   Lists the output of the svn status from the working root dir.
 
@@ -70,9 +71,10 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-i|     : SVN info 
   |Ctrl-d|     : Diff with the file in buffer
   |Ctrl-w|     : toggle the wrap settings
+  |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
 
 
-:SVNLog                                                              *SVNLog*
+:SVNLog [Arguments]                                                      *SVNLog*
 
   Lists the log for the current file in buffer. The status line will display the 
   current revision. To diff with a single revision navigate to the line using Up
@@ -89,17 +91,23 @@ COMMANDS                                                         *svnj-commands*
 
    "."       : Will display log of the current working directory
 
+   <Number>  : Number of logs to be displayed, When not specifies g:svnj_max_logs is
+               used
+
   Key-Mappings:~
   
   |Enter|      : Opens file at cursor for diff
                  If files were marked, opens all marked files for diff (max 2)  
+                 Mapped Ctrl-q to the diffed buffer
   |Ctrl-Enter| : open marked revisons or revison under cursor as new file - no split
-  |Ctrl-Space| : to mark the revision for diff.
+  |Ctrl-v|     : vertical split the revision
+  |Ctrl-i|     : SVN Info and Log of revision
   |Ctrl-w|     : toggle the wrap settings. Helpful if the comments are longer
-  |Ctrl-o|     : open all marked revisions or revision under cursor
   |Ctrl-u|     : Move one step up
   |Ctrl-t|     : Go to start
+  |Ctrl-Space| : to mark the revision for diff.
   |Ctrl-a|     : Affected/Modified files for the revision
+  |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi for now
 
   Examples:~
 
@@ -117,7 +125,32 @@ COMMANDS                                                         *svnj-commands*
   + To see the log of file not in buffer
     :SVNLog path/to/file
 
-:SVNCommits                                                          *SVNCommits*
+  + How to use sticky and Ctrl-q 
+    Added Ctrl-q to the files diffed from SVNJWindow. Press Ctrl-q on the diffed
+    file if the sticky is enabled on svnj window, the control/cursor will land back
+    on the svnj window.  Very helpfull when need to diff/compare a few versions for
+    a given file. Here is the scenario.
+
+    1. SVNLog <filename>  20   
+        The above command opens 20 logs for the given filename if provided else
+        takes any file in buffer. If no file in buffer will log for current directory
+
+   2. Press Ctrl-s on svnj window.  STICKY should be displayed on the status line
+
+   3. Take the cursor to the requiered revision line and Press Enter.
+       The revision will be diffed with the file in buffer. 
+       Perform any operations needed there.  And make sure the cursor when done is
+       on the buffer which was last opened
+
+   4. Press Ctrl-q
+      This will end the diff session and control back to svnj window
+      repeat again from Step 3.
+     
+   5. Added "?" as help display supported operations. Disable the operations using 
+      let g:svnj_custom_statusbar_ops_hide = 1
+      and then use ? to bring out the supported operations for a quick glance
+
+:SVNCommits [Arguments]                                               *SVNCommits*
 
   Lists the commit/checkin made from the current working directory
   Select upto two revisions to diff across the selected revisions using Ctrl-Space,
@@ -134,6 +167,9 @@ COMMANDS                                                         *svnj-commands*
              from the specified dir
   '.'      : Will consider as current directory example: SVNCommits .
 
+   <Number>  : Number of logs to be displayed, When not specifies g:svnj_max_logs is
+               used
+
   Key-Mappings:~
   
   |Enter|      : SVN log using revision:HEAD
@@ -141,6 +177,7 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-space| : Mark to select a revision
   |Ctrl-w|     : Toggle the wrap settings.
   |Ctrl-a|     : Affected/Modified files for the revision
+  |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
 
 
 :SVNBrowse                                                          *SVNBrowse*
@@ -159,7 +196,7 @@ COMMANDS                                                         *svnj-commands*
                    see help |g:svnj_browse_bookmarks_cache| or |g:svnj_browse_cache_all|
  
 
-:SVNBrowseRepo                                                      *SVNBrowseRepo*
+:SVNBrowseRepo [Arguments]                                         *SVNBrowseRepo*
 
   Browse the entire SVN Repository with this command.
 
@@ -182,6 +219,7 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
                  that will be opened depends on the value specified at
                  |g:svnj_max_open_files| 
+  |Ctrl-v|     : Vertical split
   |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
   |Ctrl-l|     : Opens the log for the file under cursor line.
                  Once the log is displayed can Navigate back as |Ctrl-u|
@@ -198,9 +236,10 @@ COMMANDS                                                         *svnj-commands*
                 the recursive listing is used using |Ctrl-Enter| This helps for faster
                 navigation.  Use |SVNClearCache| to clear all cached info. See also
                 |g:svnj_cache_dir| 
+ |Ctrl-h|     : Jumps to the root of the repository
+ |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
 
-
-:SVNBrowseWorkingCopy                                     *SVNBrowseWorkingCopy*
+:SVNBrowseWorkingCopy [Arguments]                            *SVNBrowseWorkingCopy*
 
   Browse the local filesystem under SVN, the working copy files with this command.
   Now works for local file system not under svn.
@@ -219,6 +258,7 @@ COMMANDS                                                         *svnj-commands*
                  If file, opens the file in buffer
   |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
   |Ctrl-t|     : Go to start
+  |Ctrl-v|     : Vertical split
   |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
                  that will be opened depends on the value specified at
                  |g:svnj_max_open_files| 
@@ -234,6 +274,12 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-r|     : Recreate cache and refresh list, cache created only if enabled.
                  Also see |g:svnj_cache_dir| |g:svnj_browse_cache_all|
                  |g:svnj_browse_cache_max_cnt| |SVNClearCache|
+  |Ctrl-h|     : Jumps to the root of the working copy requires new svn version which 
+                supports "Working Copy Root Path" in svn info command output. 
+                If using an older svn version, will jump to $HOME.
+                If current dir/browsing at the working copy root itself pressing again
+                Ctrl-h will jumpt to $HOME
+ |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
 
 
 :SVNBrowseMyList                                                *SVNBrowseMyList*
@@ -252,6 +298,7 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
                  that will be opened depends on the value specified at
                  |g:svnj_max_open_files| 
+  |Ctrl-v|     : Vertical split
   |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
   |Ctrl-l|     : Opens the log for the file under cursor line.
                 Once the log is displayed can Navigate back as |Ctrl-u|
@@ -262,6 +309,7 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-b|     : Bookmark
   |Ctrl-a|     : Affected/Modified files for the revision
   |Ctrl-r|     : Recreate cache and refresh list, cache created only if enabled
+  |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
 
 :SVNBrowseBookMarks                                            *SVNBrowseBookMarks*
     
@@ -401,6 +449,13 @@ and server. The warn message can be disabled by coding at .vimrc code >
     let g:svnj_warn_log = 0
 <
 
+                                                   *'g:svnj_warn_branch_log'*
+This option is used to control showing the error messages when the branches
+are not retrieved, The default is 1. In order to disable this set 0
+To change example at .vimrc code >
+    let g:svnj_warn_branch_log = 0
+<
+
                                                            *'g:svnj_max_logs'*
 This is used as a count of logs retrieved per revision. The default is 10
 In order to increase this value to say 20 at .vimrc >
@@ -525,6 +580,17 @@ to say 20000 code at .vimrc >
   let g:svnj_browse_max_files_cnt = 20000
 <
 
+                                              *'g:svnj_window_max_size'*
+This option specifies the maximum size of the svnj window the default size is
+25 . To make this display say 30 line at .vimrc >
+  let g:svnj_window_max_size = 30
+<
+
+                                              *'g:svnj_sticky_on_start'*
+This option makes the sticky as default startup behavior. The default
+is not sticky. At vimrc code >
+  let g:svnj_sticky_on_start = 1
+<
 
 ===============================================================================
 MAPPINGS                                                   *svnj-mappings*
@@ -603,9 +669,10 @@ example at .vimrc code >
 <
 
                                             *'g:svnj_custom_statusbar_ops_hide'*
-This option is used to show/hide the status bar supported operations display on
-the statusline. The default is 1, which shows the supported operations and keys.
-To hide this at .vimrc code >
+This option is used to show/hide the supported operations on the statusline. 
+The default is 1, which shows the supported operations and keys.
+On setting this option to 0 i,e disable this, a "?" will act as a quick glance
+at supported opetations display. To use quick glance at .vimrc code >
     let g:svnj_custom_statusbar_ops_hide = 1
 <
 
@@ -613,6 +680,11 @@ To hide this at .vimrc code >
 This option is used to color syntax the status bar selected/marked files count.
 Default is Character example at .vimrc code >
     let g:svnj_custom_statusbar_ops_hl = 'Function' 
+<
+                                            *'g:svnj_custom_sticky_hl'*
+This option is used to color syntax the STICKY bar
+Default is Function. To change example at .vimrc code >
+    let g:svnj_custom_sticky_hl = 'Question' 
 <
 ================================================================================
 CHANGELOG                                           *svnj-changelog*
@@ -726,5 +798,73 @@ v0.6~
   + Highlighting of Mark/Selected file 
   + Diff when browsing local files
 
+V0.7~
+
+  FIXED
+  + Non revision files not getting open. 
+
+V0.8
+  + NEW:  
+       Sticky (Ctrl-s), Browsing(Ctrl-h), Diffed files(Ctrl-q)
+       Bookmark files listed in SVNStatus window
+       Browsing recursive up, Vertical split
+       Number of logs to display as argument where applicable
+       SVNBlame binds
+       Fuzzzy speed improvements
+       Quick glance operation using "?"
+       New options g:svnj_sticky_on_start, g:svnj_window_max_size
+                   g:svnj_custom_sticky_hl, g:svnj_warn_branch_log
+
+  + STICKY, Now can have the svnj window remain on after file selections. Useful 
+    for doing multiple operations on different files/directories.
+
+    Ctrl-s toggles the STICKY behavior. This operation is available for all 
+    SVNJ commands which brings up the svnj window.
+
+    If you like the sticky behavior and would like to start as default on use
+    the option g:svnj_sticky_on_start as 1 default is 0. At .vimrc
+     let g:svnj_sticky_on_start = 1
+
+  + Added Ctrl-q to the files diffed from SVNJWindow. Press Ctrl-q on the diffed
+    file. If the sticky is enabled on svnj window, the control/cursor will land back
+    on the svnj window.  Very helpfull when need to diff/compare a few versions for
+    a given file. See an example usage above as |How to use sticky and Ctrl-q|
+
+  + Speed up fuzzy search
+
+  + Added Ctrl-h to browsing, Takes to repository root if the current directory is 
+    a revisioned else to Working copy root if working copy. If at working copy
+    the first Ctrl-h jumps to Working copy root and again the second Ctrl-h jumps
+    to $HOME. Save a few keystorkes
+
+  + Now can bookmark status output, the file/dir will can be bookmarked to open and
+    operate on later
+
+  + SVNLog, SVNCommits takes in an optional numeric values as the number of logs to 
+    display, When not provided will use the default or the value specified 
+    in g:svnj_max_logs
+
+  + Browsing recursive, If navigating downwards was recursive so will be the upward
+    navigation and vice versa
+
+  + Added Ctrl-v to open as vertical split
+
+  + SVNBlame now scrollbinds to file.  When the cursor in the blame buffer is moved
+    the file on the right buffer will be in sync with the blame file
+
+  + Added g:svnj_window_max_size to handle the size of svnj window
+
+  + Added F5 to redraw buffer
+
+  + Added "?" as help display supported operations. Now can disable the
+    operations using 
+     let g:svnj_custom_statusbar_ops_hide = 1
+    and then use ? to bring out the supported operations for a quick glance
+
+  + Added Ctrl-i for log output to display info and log (Useful if the comments are 
+    long)
+  FIXED
+  + Bookmark sign is shown while browsing bookmarks list, now its easier to unbook
+  + Fixed filename/dirs with spaces/special chars.
 ================================================================================
 vim:ft=help:et:ts=2:sw=2:sts=2:norl
