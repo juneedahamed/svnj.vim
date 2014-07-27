@@ -1,13 +1,13 @@
 " =============================================================================
 " File:         autoload/svnj.vim
-" Description:  Plugin for svn
+" Description:  The main dict used to populate contents
 " Author:       Juneed Ahamed
 " =============================================================================
 
 "svnj#dict.vim {{{1
 
 "script vars {{{2
-let [s:metakey, s:logkey, s:statuskey, s:commitskey, s:browsekey, s:flistkey, 
+let [s:metakey, s:logkey, s:statuskey, s:commitskey, s:browsekey, 
             \ s:menukey, s:errorkey] = svnj#utils#getkeys()
 "2}}}
 
@@ -24,7 +24,7 @@ fun! svnj#dict#new(...)
     let obj.brecursive = 0
     let obj.hasbufops = 0
     if a:0 >= 2 | call extend(obj, a:2) | en
-    return obj
+    retu obj
 endf
 
 fun! s:dict.setMeta(meta) dict
@@ -33,7 +33,7 @@ endf
 
 fun! s:dict.nextkey() dict
     let self.idx += 1
-    return self.idx
+    retu self.idx
 endf
 
 fun! s:dict.lines() dict
@@ -42,7 +42,6 @@ fun! s:dict.lines() dict
     if has_key(self, s:statuskey) | call extend(lines, self[s:statuskey].format()) | en
     if has_key(self, s:commitskey) | call extend(lines, self[s:commitskey].format()) | en
     if has_key(self, s:browsekey) | call extend(lines, self[s:browsekey].format_browsed()) | en
-    if has_key(self, s:flistkey) | call extend(lines, self[s:flistkey].format()) | en
     call extend(dislines, lines[ : g:svnj_max_buf_lines])
 
     if has_key(self, s:menukey) | call extend(mlines, self[s:menukey].format()) | en
@@ -57,9 +56,8 @@ fun! s:dict.entries() dict
     if has_key(self, s:statuskey) | call add(rlst, self.statusd) | en
     if has_key(self, s:commitskey) | call add(rlst, self.commitsd) | en
     if has_key(self, s:browsekey) | call add(rlst, self.browsed) | en
-    if has_key(self, s:flistkey) | call add(rlst, self.flistd) | en
     if has_key(self, s:menukey) | call add(rlst, self.menud) | en
-    return rlst
+    retu rlst
 endf
 
 fun! s:dict.discardEntries() dict
@@ -77,13 +75,13 @@ endf
 
 fun! s:dict.getOps(key) dict
     if a:key == "err" && self.hasError() && has_key(self.error, "ops") 
-        return self.error.ops
+        retu self.error.ops
     endif
     for thedict in self.entries()
         if has_key(self, s:browsekey) | retu thedict.ops | en
         if has_key(thedict.contents, a:key) | retu thedict.ops | en
     endfor
-    return {}
+    retu {}
 endf
 
 fun! s:dict.getAllOps() dict
@@ -94,7 +92,7 @@ fun! s:dict.getAllOps() dict
     if self.hasError() && has_key(self.error, "ops") 
         call extend(allops, self.error.ops)
     endif
-    return allops
+    retu allops
 endf
 
 fun! s:dict.setOpsDescr() dict
@@ -109,14 +107,14 @@ fun! s:dict.setOpsDescr() dict
 endf
 
 fun! s:dict.hasError() dict
-    return has_key(self, s:errorkey)
+    retu has_key(self, s:errorkey)
 endf
 
 fun! s:dict.browseDict() dict
     if has_key(self, s:browsekey) 
-        return self[s:browsekey].contents
+        retu self[s:browsekey].contents
     endif
-    return {}
+    retu {}
 endf
 
 fun! s:entryd.format() dict
@@ -125,7 +123,7 @@ fun! s:entryd.format() dict
         let line = printf("%4d:%s", key, self.contents[key].line)
         call add(lines, line)
     endfor
-    return lines
+    retu lines
 endf
 "2}}}
 
@@ -138,7 +136,7 @@ fun! svnj#dict#addBrowseEntries(dict, key, entries, ops)
 endf
 
 fun! s:entryd.format_browsed() dict
-    return self.contents
+    retu self.contents
 endf
 
 "Helpers {{{2
@@ -189,8 +187,7 @@ fun! svnj#dict#menuItem(title, callback, convert)
     let menu_item.title = a:title
     let menu_item.callback = a:callback
     let menu_item.convert = a:convert
-    return menu_item
+    retu menu_item
 endf
-
 "2}}}
 "1}}}

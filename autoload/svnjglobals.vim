@@ -5,7 +5,6 @@
 " =============================================================================
 
 "global vars {{{2
-
 "start init {{{3
 fun! svnjglobals#init()
     try| call s:custom() | catch | endt
@@ -32,13 +31,13 @@ fun! s:custom()
     let g:svnj_max_diff = get(g:, 'svnj_max_diff', 2)
     let g:svnj_max_buf_lines = get(g:, 'svnj_max_buf_lines', 80)
     let g:svnj_window_max_size = get(g:, 'svnj_window_max_size', 20)
-    let g:svnj_find_files = get(g:, 'svnj_find_files', 1)
-    let g:svnj_warn_log = get(g:, 'svnj_warn_log', 1)
     let g:svnj_warn_branch_log = get(g:, 'svnj_warn_branch_log', 1)
     let g:svnj_enable_debug = get(g:, 'svnj_enable_debug', 0)
+    let g:svnj_enable_extended_debug = get(g:, 'svnj_enable_extended_debug', 0)
     let g:svnj_browse_max_files_cnt= get(g:, 'svnj_browse_max_files_cnt', 10000)
     let g:svnj_browse_repo_max_files_cnt= get(g:, 'svnj_browse_repo_max_files_cnt', 1000)
     let g:svnj_sticky_on_start = get(g:, 'svnj_sticky_on_start', 0)
+    let g:svnj_send_soc_command = get(g:, 'svnj_send_soc_command', 1)
 endf
 "3}}}
 
@@ -59,6 +58,8 @@ fun! s:customize()
     let g:svnj_custom_statusbar_sel_hl = s:get_hl('g:svnj_custom_statusbar_sel_hl', 'Question')
     let g:svnj_custom_statusbar_ops_hide = get(g:, 'svnj_custom_statusbar_ops_hide', 0)
     let g:svnj_custom_sticky_hl = s:get_hl('g:svnj_custom_sticky_hl', 'Function')
+    let g:svnj_custom_commit_files_hl = s:get_hl('g:svnj_custom_commit_files_hl', 'Directory')
+    let g:svnj_custom_commit_header_hl = s:get_hl('g:svnj_custom_commit_header_hl', 'Comment')
 endf
 "3}}}
     
@@ -67,13 +68,13 @@ fun! s:cache()
     fun! s:createdir(dirpath)
         if isdirectory(a:dirpath) | retu 1 | en
         if filereadable(a:dirpath) 
-            retu s:showErrorConsole("Error " . a:dirpath . 
+            retu s:showerr("Error " . a:dirpath . 
                         \ " already exist as a file expecting a directory")
         endif
         if exists("*mkdir")
             try | call mkdir(a:dirpath, "p")
             catch
-                retu s:showErrorConsole("Error creating cache dir: " .
+                retu s:showerr("Error creating cache dir: " .
                             \ a:dirpath . " " .  v:exception)
             endtry
         endif
@@ -123,7 +124,7 @@ fun! s:ignores()
     let ign_files = ['\.bin', '\.zip', '\.bz2', '\.tar', '\.gz', 
                 \ '\.egg', '\.pyc', '\.so', '\.git',
                 \ '\.png', '\.gif', '\.jpg', '\.ico', '\.bmp', 
-                \ '\.psd', '\.rpd', '\.pdf']
+                \ '\.psd', '\.pdf']
 
     if exists('g:svnj_ignore_files') && type(g:svnj_ignore_files) == type([])
         for ig in g:svnj_ignore_files | call add(ign_files, ig) | endfor
@@ -176,21 +177,24 @@ fun! s:urls()
         else | retur [] | en
     endf
 
+    fun! s:sortrev(a, b)
+        retu len(a:a) < len(a:b)
+    endf
+
     let g:p_browse_mylist = s:makelst('g:svnj_browse_mylist')
     let g:p_burls = map(s:makelst('g:svnj_branch_url'), 's:stripAddSlash(v:val)')
-
+    let g:p_burls = sort(g:p_burls, "s:sortrev")
     let g:p_turl = s:initPathVariables('g:svnj_trunk_url')
     let g:p_wcrp = s:initPathVariables('g:svnj_working_copy_root_path')
 endf
 "3}}}
 
-fun! s:showErrorConsole(msg) "{{{
+fun! s:showerr(msg) "{{{3
     echohl Error | echo a:msg | echohl None
     let ign = input('Press Enter to coninue :')
     retu 0
 endf
 "3}}}
-"2}}}
 
 "svnd reference {{{2
 "svnd = {
@@ -247,3 +251,4 @@ endf
 "        key : { line : line, path : path} 
 "}
 "}}}2
+"2}}}

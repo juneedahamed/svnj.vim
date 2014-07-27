@@ -1,28 +1,30 @@
 "===============================================================================
 " File:         autoload/svnj/status.vim
-" Description:  SVN Status (svn st )
+" Description:  SVN Status (svn st)
 " Author:       Juneed Ahamed
 "===============================================================================
 
 "svnj/status.vim {{{1
 "vars {{{2
-if !exists('g:svnj_glb_init') | let g:svnj_glb_init = svnjglobals#init() | en
 let [s:selectkey, s:selectdscr] = svnj#utils#selkey()
 "2}}}
 
 "Key mappings for svn status output statusops {{{2
 fun! svnj#status#statusops()
    return {
-               \ "\<Enter>"  :{"bop":"<enter>", "dscr" :'Ent:Opn', "fn":'svnj#gopshdlr#openFile', "args":['winj#newBufOpen']},
-               \ "\<C-o>"    :{"bop":"<c-o>", "dscr" :'C-o:OpnAll', "fn":'svnj#gopshdlr#openFltrdFiles', "args":['winj#newBufOpen']},
-               \ "\<C-d>"    :{"bop":"<c-d>", "dscr" :'C-d:Diff', "fn":'svnj#gopshdlr#openFile', "args":['winj#diffFile']},
+               \ "\<Enter>"  :{"bop":"<enter>", "dscr" :'Ent:Opn', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#efile']},
+               \ "\<C-o>"    :{"bop":"<c-o>", "dscr" :'C-o:OpnAll', "fn":'svnj#gopshdlr#openFltrdFiles', "args":['svnj#act#efile']},
+               \ "\<C-d>"    :{"bop":"<c-d>", "dscr" :'C-d:Diff', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#diff']},
                \ "\<C-i>"    :{"bop":"<c-i>", "dscr" :'C-i:Info', "fn":'svnj#gopshdlr#info'},
                \ "\<C-w>"    :{"bop":"<c-w>", "dscr" :'C-w:Wrap!', "fn":'svnj#gopshdlr#toggleWrap'},
                \ "\<C-y>"    :{"bop":"<c-y>", "dscr" :'C-y:Cmd', "fn":'svnj#gopshdlr#cmd'},
                \ "\<C-b>"    :{"bop":"<c-b>", "dscr" :'C-b:Bk', "fn":'svnj#gopshdlr#book'},
                \ s:selectkey :{"bop":"<c-space>", "dscr" : s:selectdscr, "fn":'svnj#gopshdlr#select'},
-               \ "\<C-s>"    : {"dscr":'C-s:stick!', "fn":'winj#hidePrompt'},
-               \ "\<F5>"     : {"dscr":'F5:redr', "fn":'winj#forceredr'},
+               \ "\<C-e>"    : {"bop":"<c-e>", "dscr":'C-e:SelectAll', "fn":'svnj#gopshdlr#selectall'},
+               \ "\<C-z>"    : {"bop":"<c-z>", "dscr":'C-z:Commit', "fn":'svnj#gopshdlr#commit'},
+               \ "\<C-g>"    : {"bop":"<c-g>", "dscr":'C-g:Add', "fn":'svnj#gopshdlr#add'},
+               \ "\<C-s>"    : {"dscr":'C-s:stick!', "fn":'svnj#prompt#setNoLoop'},
+               \ "\<F5>"     : {"dscr":'F5:redr', "fn":'svnj#act#forceredr'},
                \ }
 endf
 "2}}}

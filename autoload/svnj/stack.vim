@@ -35,8 +35,8 @@ fun! svnj#stack#pop(...)
         let callnow = s:svnj_stack[len(s:svnj_stack)-2]
         let s:svnj_stack = s:svnj_stack[:-3]
         call call(callnow[0], callnow[1:])
-     catch | call svnj#utils#dbgHld("At pop", v:exception) | endt
-    return 1
+     catch | call svnj#utils#dbgMsg("At pop", v:exception) | endt
+    retu svnj#passed()
 endf
 
 fun! svnj#stack#top(...)
@@ -46,10 +46,10 @@ fun! svnj#stack#top(...)
             let s:svnj_stack = []
             call call(cb[0], cb[1:])
         else
-            call svnj#utils#dbgHld("At top ", "Nothing in stack")
+            call svnj#utils#dbgMsg("At top ", "Nothing in stack")
         endif
-    catch | call svnj#utils#dbgHld("At top", v:exception) | endtry
-    return 1
+    catch | call svnj#utils#dbgMsg("At top", v:exception) | endtry
+    retu svnj#passed()
 endf
 "2}}}
 "1}}}

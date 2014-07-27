@@ -1,8 +1,7 @@
 "===============================================================================
 " File:         autoload/svnj/log.vim
-" Description:  SVN Browser
+" Description:  SVN Log
 " Author:       Juneed Ahamed
-" License:      Distributed under the same terms as Vim itself. See :help license.
 "===============================================================================
 
 "svnj#log {{{1
@@ -10,32 +9,27 @@
 "script vars {{{2
 let [s:selectkey, s:selectdscr] = svnj#utils#selkey()
 let s:metakey = "meta"
-let s:flistkey = "flistd"
 "2}}}
 
 "Key mappings for svn log output logops {{{3
 let [s:topkey, s:topdscr] = svnj#utils#topkey()
 let [s:ctrEntkey, s:ctrEntDescr] = svnj#utils#CtrlEntReplace('NoSplit')
 fun! s:logops()
-    return { 
-                \ "\<Enter>"   : {"bop":"<enter>", "dscr":'Ent:Diff', "fn":'svnj#gopshdlr#openFile', "args":['winj#diffFile']},
-                \ s:ctrEntkey  : {"bop":"<c-enter>", "dscr":s:ctrEntDescr, "fn":'svnj#gopshdlr#openFile', "args":['winj#newBufOpen']},
-                \ "\<C-v>"     : {"bop":"<c-v>", "dscr":'C-v:VS', "fn":'svnj#gopshdlr#openFile', "args":['winj#openVS']},
+    retu { 
+                \ "\<Enter>"   : {"bop":"<enter>", "dscr":'Ent:Diff', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#diff']},
+                \ s:ctrEntkey  : {"bop":"<c-enter>", "dscr":s:ctrEntDescr, "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#efile']},
+                \ "\<C-v>"     : {"bop":"<c-v>", "dscr":'C-v:VS', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#vs']},
                 \ "\<C-w>"     : {"bop":"<c-w>", "dscr":'C-w:Wrap!', "fn":'svnj#gopshdlr#toggleWrap'},
                 \ "\<C-u>"     : {"bop":"<c-u>", "dscr":'C-u:Up', "fn":'svnj#stack#pop'},
                 \ "\<C-a>"     : {"bop":"<c-a>", "dscr":'C-a:Afiles', "fn":'svnj#log#affectedfiles'},
+                \ "\<C-h>"     : {"bop":"<c-h>", "dscr":'C-h:HEAD', "fn":'svnj#log#showCommits', "args":[":HEAD"]},
+                \ "\<C-p>"     : {"bop":"<c-p>", "dscr":'C-p:PREV', "fn":'svnj#log#showCommits', "args":[":PREV"]},
                 \ "\<C-i>"     : {"bop":"<c-i>", "dscr":'C-i:Info', "fn":'svnj#gopshdlr#info'},
                 \ s:topkey     : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
                 \ s:selectkey  : {"bop":"<c-space>", "dscr":s:selectdscr, "fn":'svnj#gopshdlr#select'},
-                \ "\<C-s>"      : {"dscr":'C-s:stick!', "fn":'winj#hidePrompt'},
+                \ "\<C-s>"     : {"dscr":'C-s:stick!', "fn":'svnj#prompt#setNoLoop'},
+                \ "\<F5>"      : {"dscr":'F5:redr', "fn":'svnj#act#forceredr'},
                 \ }
-endf
-"3}}}
-
-"Key mappings for flist {{{3
-fun! s:flistops()
-   return { "\<Enter>"  : {"bop":"<enter>","dscr":'Ent:Select', "fn":'svnj#log#flistSelected'},
-               \ }
 endf
 "3}}}
 
@@ -45,25 +39,34 @@ fun! svnj#log#SVNLog(...)
         call svnj#init()
         let [target, numlogs] = svnj#utils#parseTargetAndNumLogs(a:000)
     catch
-        let ldict = svnj#dict#new("SVN Log")
+        let ldict = svnj#dict#new("Log")
         call svnj#dict#addErr(ldict, 'Failed ', v:exception)
-        return winj#populateJWindow(ldict)
+        retu winj#populateJWindow(ldict)
         unlet! ldict
     endtry
     call svnj#log#logs(target, numlogs, 'winj#populateJWindow', 1)
 endf
 
 fun! svnj#log#logs(lfile, maxlogs, populatecb, needLCR)
-    let s:ldict = svnj#dict#new("SVN Log")
+    let s:ldict = svnj#dict#new("Log")
     try
         let s:ldict.meta = svnj#svn#getMeta(a:lfile)
         let [entries, s:ldict.meta.cmd] = svnj#svn#logs(a:maxlogs,
                     \ s:ldict.meta.url)
         call svnj#dict#addEntries(s:ldict, 'logd', entries, s:logops())
         call s:logMenus(s:ldict.meta.url)
+
+        let soc_rev = ""
+        try 
+            if g:svnj_send_soc_command
+                let soc_rev = svnj#svn#log_stoponcopy(a:lfile)
+                let soc_rev = " S@". soc_rev
+            endif
+        catch | endt
+
         if a:needLCR
             let lastChngdRev = svnj#svn#lastChngdRev(a:lfile)
-            call s:addToTitle(s:ldict.meta.url . '@' . lastChngdRev, 0)
+            call s:addToTitle(s:ldict.meta.url . '@r' . lastChngdRev . soc_rev, 0)
         else
             call s:addToTitle(s:ldict.meta.url, 0)
         endif
@@ -73,24 +76,24 @@ fun! svnj#log#logs(lfile, maxlogs, populatecb, needLCR)
         call svnj#dict#addErr(s:ldict, 'Failed ', v:exception)
     endtry
     call call(a:populatecb, [s:ldict])
-    return 1
+    retu svnj#passed()
 endf
 "2}}}
 
 "menu {{{2
 fun! s:logMenus(url)
     let menus = []
-    if svnj#svn#isBranch(a:url)
+    if svnj#svn#isTrunk(a:url)
+        call add(menus, svnj#dict#menuItem("List Branches",
+                    \'svnj#log#listTopBranchURLs', "trunk2branch"))
+
+    elseif svnj#svn#isBranch(a:url)
         if g:p_turl != ''
             call add(menus, svnj#dict#menuItem("List Trunk Files",
                         \'svnj#log#listFilesFrom', "branch2trunk"))
         endif
         call add(menus, svnj#dict#menuItem("List Branches",
                     \ 'svnj#log#listTopBranchURLs', "branch2branch"))
-
-    elseif svnj#svn#isTrunk(a:url)
-        call add(menus, svnj#dict#menuItem("List Branches",
-                    \'svnj#log#listTopBranchURLs', "trunk2branch"))
 
     elseif exists('g:p_burls') && g:svnj_warn_branch_log 
         call svnj#dict#addErr(s:ldict, 'Failed to get branches/trunk',
@@ -106,34 +109,42 @@ endf
 
 "callbacks {{{2
 fun! svnj#log#browse(key)
-    return svnj#brwsr#Menu('winj#populate')
+    retu svnj#brwsr#Menu('winj#populate')
 endf
 
 fun! svnj#log#listFilesFrom(key)
     let contents = s:ldict.menud.contents[a:key]
     let s:ldict = svnj#dict#new(s:ldict.title, {s:metakey : deepcopy(s:ldict.meta)})
-    let fileurl = ''
     try
-        if contents.convert ==# 'branch2branch'
-            let root = svnj#svn#branchRoot(s:ldict.meta.url)
-            let new_url = substitute(s:ldict.meta.url, root, s:ldict.title, '')
-            let fileurl = s:svnBranchURLFromBranch(new_url, contents.title)
-        elseif contents.convert ==# 'branch2trunk'
-            let fileurl = s:svnTrunkURLFromBranchURL(s:ldict.meta.url)
-        elseif contents.convert ==# 'trunk2branch'
-            let fileurl = s:svnBranchURLFromTrunk(s:ldict.meta.url, s:ldict.title, contents.title)
-        endif
+        let newroot = contents.convert ==# 'branch2trunk' ? g:p_turl : s:ldict.title . contents.title
+        let [newurl, result] = s:converturl(s:ldict.meta.url, newroot)
+        if result == "browserdisplayed" | retu "" | en
 
-        let fileurl = svnj#svn#validateSVNURLInteractive(fileurl)
-        let s:ldict.meta.url = fileurl
-        let s:ldict.title = fileurl
+        let s:ldict.meta.url = newurl
+        let s:ldict.title = newurl
         let [entries, s:ldict.meta.cmd] = svnj#svn#logs(g:svnj_max_logs, s:ldict.meta.url)
         call svnj#dict#addEntries(s:ldict, 'logd', entries, s:logops())
     catch
-        call svnj#utils#dbgHld("At listFilesFrom", v:exception)
+        call svnj#utils#dbgMsg("At listFilesFrom", v:exception)
         call svnj#dict#addErrUp(s:ldict, 'Failed to construct svn url',' OR File does not exist')
     endtry
     call winj#populate(s:ldict)
+endf
+
+fun! svnj#log#showCommits(argdict)
+    try
+        let [adict, akey] = [a:argdict.dict, a:argdict.key]
+        let aheadOrPrev = a:argdict.opt[0]
+        let url = filereadable(adict.meta.fpath) || isdirectory(adict.meta.fpath) ? 
+                    \ adict.meta.fpath : adict.meta.url
+        let revision =  adict.logd.contents[akey].revision
+        let svncmd = 'svn diff --non-interactive -' .revision . aheadOrPrev . 
+                    \ ' --summarize ' . fnameescape(url)
+        let title = 'SVNDiff:'. revision . aheadOrPrev . " " . url
+        retu svnj#gopshdlr#showCommits(a:argdict.dict, svncmd, title)
+    catch
+        call svnj#utils#dbgMsg("At svnj#log#showCommits", v:exception)
+    endtry
 endf
 
 fun! svnj#log#affectedfiles(argdict)
@@ -167,59 +178,10 @@ fun! svnj#log#affectedfiles(argdict)
             let [slist, adict.meta.cmd] = svnj#svn#affectedfiles(url, revision)
         endif
         call svnj#select#clear()
-        return svnj#gopshdlr#displayAffectedFiles(adict, title, slist)
+        retu svnj#gopshdlr#displayAffectedFiles(adict, title, slist)
     catch
-        call svnj#utils#dbgHld("At svnj#log#affectedfiles", v:exception)
+        call svnj#utils#dbgMsg("At svnj#log#affectedfiles", v:exception)
     endtry
-endf
-"2}}}
-
-"URLs translaters branch2branch, branch2trunk etc., {{{2
-fun! s:svnBranchURLFromTrunk(tURL, broot, tbname)
-    let bURL = a:broot . a:tbname
-    let rbURL = substitute(a:tURL, g:p_turl, bURL, '')
-
-    if !svnj#svn#validURL(rbURL) && g:svnj_find_files == 1
-        let tfile = substitute(a:tURL, g:p_turl, "", "")
-        let [ tbURLs, result] = s:findFile(bURL, tfile)
-        if result | return tbURLs[0] | en
-    endif
-    return rbURL
-endf
-
-fun! s:svnBranchURLFromBranch(bURL, tbname)
-    let fbname = svnj#svn#branchName(a:bURL)
-    let root = svnj#svn#branchRoot(a:bURL)
-
-    "This check for filename selection
-    if !svnj#utils#isSvnDirReg(a:tbname)
-        let tryURL = root . a:tbname
-        if svnj#svn#validURL(tryURL) | retu tryURL | en
-    en
-
-    let rbURL = substitute(a:bURL, fbname, a:tbname, '')
-    if !svnj#svn#validURL(rbURL) && g:svnj_find_files == 1
-        let tfile = substitute(a:bURL, root, "", "")
-        let [ tbURLs, result] = s:findFile(root . a:tbname, tfile)
-        if result | return tbURLs[0] | en
-    endif
-    return rbURL
-endf
-
-fun! s:svnTrunkURLFromBranchURL(bURL)
-    let branchname = svnj#svn#branchName(a:bURL)
-    if strlen(branchname) > 0
-        let root = svnj#svn#branchRoot(a:bURL)
-        let currentbranchurl = root . branchname
-        let tURL = substitute(a:bURL, currentbranchurl, g:p_turl, '')
-        if !svnj#svn#validURL(tURL) && g:svnj_find_files == 1
-            let tfile = substitute(a:bURL, currentbranchurl, "", "")
-            let [ tURLs, result] = s:findFile(g:p_turl, tfile)
-            if result | return tURLs[0] | en
-        endif
-        return tURL
-    endif
-    return ''
 endf
 "2}}}
 
@@ -231,154 +193,92 @@ fun! svnj#log#listTopBranchURLs(key)
     try
         for burl in g:p_burls
             call svnj#dict#addEntries(s:ldict, 'menud',
-                        \ [svnj#dict#menuItem(burl,'svnj#log#listBranchesHandler',
+                        \ [svnj#dict#menuItem(burl,'svnj#log#listBranches',
                         \ convert)], svnj#gopshdlr#menuops())
         endfor
     catch
-        call svnj#utils#dbgHld("At listTopBranchURLs", v:exception)
+        call svnj#utils#dbgMsg("At listTopBranchURLs", v:exception)
         call svnj#dict#addErr(s:ldict, 'Failed ', v:exception)
         call winj#populate(s:ldict)
-        return 1
+        retu svnj#failed()
     endtry
     call winj#populate(s:ldict)
 endf
 
-fun! svnj#log#listBranchesHandler(key)
+fun! svnj#log#listBranches(key)
     let url = s:ldict.menud.contents[a:key].title
     let convert = s:ldict.menud.contents[a:key].convert
-    return svnj#log#listBranches(url, convert)
-endf
-
-fun! svnj#log#listBranches(url, convert)
-    let s:ldict = svnj#dict#new(a:url, {s:metakey : s:ldict.meta})
+    let s:ldict = svnj#dict#new(url, {s:metakey : s:ldict.meta})
     try
-        let svncmd = 'svn ls --non-interactive ' . a:url
+        let svncmd = 'svn ls --non-interactive ' . url
         let bstr = svnj#utils#execShellCmd(svncmd)
         let blst = split(bstr, '\n')
-        let cbrnch = svnj#svn#branchName(s:ldict.meta.url)
         for branch in blst
-            if cbrnch != branch
-                call svnj#dict#addEntries(s:ldict, 'menud', 
-                            \ [svnj#dict#menuItem(branch, 'svnj#log#listFilesFrom',
-                            \ a:convert)], svnj#gopshdlr#menuops())
-            endif
+            call svnj#dict#addEntries(s:ldict, 'menud', 
+                        \ [svnj#dict#menuItem(branch, 'svnj#log#listFilesFrom',
+                        \ convert)], svnj#gopshdlr#menuops())
         endfor
     catch
         call svnj#dict#addErr(s:ldict, 'Failed ', v:exception)
-        return winj#populate(s:ldict)
+        retu winj#populate(s:ldict)
     endtry
     call winj#populate(s:ldict)
+    retu svnj#passed()
 endf
 "2}}}
 
-"flist functions findfiles, askUsr {{{2
-fun! s:findFile(pURL, tfile)
-    let shellist = []
+"conversion, browserdisplay {{{2
+fun! s:converturl(furl, tonewroot)
     try
-        let fname = fnamemodify(a:tfile, ":t")
-        let svncmd = 'svn list -R --non-interactive ' . a:pURL
-        echohl Error | echo "" | echon "Please wait, Finding file  : " |  echohl None | echon fname
-        let shellout = svnj#utils#execShellCmd(svncmd)
-        let tshellist = split(shellout, '\n')
-        call s:warnlog(tshellist, a:tfile, fname)
-        let pat = ".*".fname
-        let shellist = filter(tshellist, 'v:val =~ pat')
-        unlet! tshellist
-
-        "If shell returned one file we found the required one
-        if len(shellist) == 1 
-            let fURL = a:pURL . shellist[0]
-            if svnj#svn#validURL(fURL) | retu [[fURL,] , 1] | en
-        endif
-
-        "If shell returned more than one file will have to narrow it down
-        if len(shellist) > 0
-            let [shellist, result] = s:narrowfiles(shellist, a:pURL, a:tfile)
-            if result | return [shellist, result] | en
-
-            "ask user for a file
-            let usrFile = s:askUsrForFile(shellist, a:tfile)
-            if usrFile != ""
-                let fURL = a:pURL . usrFile
-                if svnj#svn#validURL(fURL) | retu [[fURL,] , 1] | en
-            endif
-        endif
-    catch
-    endtry
-    return [shellist, 0]
-endf
-
-fun! s:narrowfiles(flist, pURL, tfile)
-    let glist = a:flist
-    if len(glist) > 0
-        "if whole path matches we are done
-        let found = index(glist, a:tfile)
-        if found != -1 
-            let fURL = a:pURL . glist[found]
-            if svnj#svn#validURL(fURL) | retu [[fURL,] , 1] | en
+        let [fromlst, tolst] = [split(a:furl, '/\zs'), split(a:tonewroot, '/\zs')]
+        if len(fromlst) < len(tolst) 
+            retu s:displayBrowser(a:furl, a:tonewroot)
         endif
         
-        "whole path did not match lets try to narrow it down
-        let expr = ".*".a:tfile
-        let flist = filter(copy(glist),  'v:val =~ expr' )
-        if len(flist) == 1
-            let fURL = a:pURL . flist[0]
-            if svnj#svn#validURL(fURL) | retu [[fURL,] , 1] | en
-        elseif len(flist) > 1
-            let glist = flist
-        endif
-
-        if len(glist) > 0 && len(glist) < 400
-            "Attempt by trying to match the fpath, parse tfile upwards
-            let ttfile = split(a:tfile, "/")
-            let dpath = ""
-            for cand in ttfile
-                let expr = dpath == "" ? cand  : cand . "/" .dpath
-                let expr = ".*" . expr
-                let dflist = filter(copy(glist),  'v:val =~ expr' )
-                if len(dflist) == 1
-                    let dURL = a:pURL . dflist[0]
-                    if svnj#svn#validURL(dURL) | retu [[dURL,] , 1] | en
-                endif
-            endfor
-    endif
-    return [glist, 0]
-endf
-
-fun! s:askUsrForFile(files, lfile)
-    let s:selectedFile = ""
-    if len(a:files) > 0
-        let qdict = svnj#dict#new("Select for :" . a:lfile)
-        let flistentries = []
-        for tfile in a:files
-            let flistentryd = {}
-            let flistentryd.line = tfile
-            call add(flistentries, flistentryd)
+        let retlst = []
+        for idx in range(0, len(tolst) -1)
+            if fromlst[idx] == tolst[idx]
+                call add(retlst, fromlst[idx])
+            else
+                call extend(retlst, tolst[idx :]) "Push rest of tourl
+                let fromlst = fromlst[idx + 1 :] "idx + 1 as assuming it will be branch name
+                break
+            endif
         endfor
-        call svnj#dict#addEntries(qsvnd, s:flistkey, entries, s:flistops())
-        call winj#populate(qsvnd)
-        return s:selectedFile
+
+        while len(fromlst) > 0 && len(retlst) > 1
+            let newurl = join(retlst, "") . join(fromlst, "")
+            if svnj#svn#validURL(newurl) | retu [newurl, "filefound"] | en
+            let fromlst = fromlst[1:]
+        endwhile
+
+    catch | call svnj#utils#dbgMsg("At s:converturl", v:exception) | endt
+    retu s:displayBrowser(a:furl, a:tonewroot)
+endf
+
+fun! s:displayBrowser(fromURL, tonewroot)
+    let root =  s:findroot(a:fromURL, a:tonewroot)
+    if len(root) > 0 
+        let filepath = substitute(a:fromURL, root, "", "") "Remove one element from from
+        let filepath = join(split(filepath, '/\zs')[1:], "")
+        call svnj#utils#input("Failed to construct url, Will provide the browser to get to it",
+                    \ a:tonewroot . 
+                    \ "\nNavigate:<Ctr-u> or <Ctrl-Ent> or <Enter>, Log:<Ctrl-l>, Diff:<Enter>\n",
+                    \ "Any <Enter> to continue : ")
+        call svnj#brwsr#svnBrowse(a:tonewroot, root, 0, 1, 'winj#populate', )
     endif
+    retu ["", "browserdisplayed"]
 endf
 
-fun! s:warnlog(flist, tfile, fname)
-    if g:svnj_warn_log && len(a:flist) > 100 
-        echo "Using svn list command returned "
-        echohl Error | echon len(a:flist)  | echohl None | echon " Files"
-        echo "You can improve this by providing a in depth directory at "
-        echohl Question | echon "g:svnj_branch_url"  | echohl None
-        echon "  coma separated values and then select the directory from the " .
-                   \ "branches listed."
-        echo "Disable this message by setting at .vimrc"
-        echohl Question | echon " let g:svnj_warn_log = 0 "  | echohl None
-        echo "You can also disable finding files using"
-        echohl Question | echon " let g:svnj_find_files = 0 "  | echohl None
-        let x = input("Press Enter to continue") 
-    en
-endf
-
-fun! svnj#log#flistSelected(key)
-    let s:selectedFile = a:qsvnd.flistd.contents[a:key].line
+fun! s:findroot(url1, url2)
+    let lst1 = split(a:url1, '/\zs')
+    let lst2 = split(a:url2, '/\zs')
+    let root = []
+    for idx in range(0, (len(lst1)<=len(lst2) ? len(lst1) : len(lst2)) - 1)
+        if lst1[idx] == lst2[idx] | call add(root, lst1[idx]) | cont | en
+        break
+    endfor
+    return join(root, "")
 endf
 
 fun! s:addToTitle(msg, prefix)

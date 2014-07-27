@@ -20,32 +20,33 @@ fun! svnj#select#add(key, line, path, revision)
     let s:selectd[a:key] = {'line': a:line, 'path': a:path,
                 \ 'revision': a:revision}
     call svnj#select#sign(a:key, 1)
-    return 2 "Donot clear fltr
+    retu svnj#nofltrclear()
 endf
 
 fun! svnj#select#remove(key)
     if has_key(s:selectd, a:key)
         call remove(s:selectd, a:key) | call svnj#select#sign(a:key, 0)
-        return 1
+        retu svnj#passed()
     endif
-    return 0
+    retu svnj#failed()
 endf
 
 fun! svnj#select#exists(key)
-    return has_key(s:selectd, a:key)
+    retu has_key(s:selectd, a:key)
 endf
 
 fun! svnj#select#openFiles(callback, maxopen)
     let cnt = 0
     for [key, sdict] in items(s:selectd)
-        if key == 'err' | cont | en
-        if svnj#utils#isSvnDirReg(sdict.path) | cont | en
+        if key == 'err' || svnj#utils#isSvnDirReg(sdict.path) 
+                    \ || svnj#utils#isdir(sdict.path)
+        cont | en
         let cnt += 1
         call call(a:callback, [sdict.revision, sdict.path])
         if cnt == a:maxopen | break | en
     endfor
     if cnt != 0 | call svnj#prepexit() | en
-    return 2 "Donot clear fltr
+    retu svnj#nofltrclear() 
 endf
 "2}}}
 
@@ -61,24 +62,24 @@ fun! svnj#select#book(url)
         call s:signbmark(g:bmarkssid, 1)
     endif
     call svnj#caop#cachebmarks()
-    return 2 "Donot clear fltr
+    retu svnj#nofltrclear() 
 endf
 
 fun! svnj#select#booked()
-    return keys(svnj#caop#fetchbmarks())
+    retu keys(svnj#caop#fetchbmarks())
 endf
 "2}}}
 
 "sign functions {{{2
 fun! svnj#select#sign(theid, isadd)
     try
-        if !g:svnj_signs | return | en
+        if !g:svnj_signs | retu | en
         let theid = matchstr(a:theid, "\\d\\+")
         if a:isadd | exe 'silent! sign place ' . theid . ' line=' . line('.') . 
                     \ ' name=svnjmark '.' buffer='.bufnr('%')
         else | exe 'silent! sign unplace ' . theid | en
     catch 
-        call svnj#utils#dbgHld("At dosign", v:exception)
+        call svnj#utils#dbgMsg("At dosign", v:exception)
     endtry
 endf
 
@@ -88,10 +89,10 @@ endf
 
 fun! svnj#select#resign(dict)
     try
-        if !g:svnj_signs | return 1 | en
+        if !g:svnj_signs | retu svnj#passed() | en
         call svnj#select#clearsigns()
         call s:resign(a:dict)
-    catch | call svnj#utils#dbgHld("At svnj#select#resign", v:exception) | endt
+    catch | call svnj#utils#dbgMsg("At svnj#select#resign", v:exception) | endt
 endf
     
 fun! s:resign(dict) 
@@ -143,13 +144,13 @@ endf
 
 fun! s:signbmark(theid, isadd)
     try
-        if !g:svnj_signs | return | en
+        if !g:svnj_signs | retu | en
         let theid = matchstr(a:theid, "\\d\\+")
         if a:isadd | exe 'silent! sign place ' . theid . ' line=' . line('.') . 
                     \ ' name=svnjbook '.' buffer='.bufnr('%')
         else | exe 'silent! sign unplace ' . theid | en
     catch 
-        call svnj#utils#dbgHld("At signbmark", v:exception)
+        call svnj#utils#dbgMsg("At signbmark", v:exception)
     endtry
 endf
 "2}}}

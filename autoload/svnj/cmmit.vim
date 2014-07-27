@@ -9,15 +9,15 @@
 "ops commitsop {{{3
 let [s:selectkey, s:selectdscr] = svnj#utils#selkey()
 fun! s:commitops()
-   return { 
+   retu { 
                \ "\<Enter>"  :{"bop":"<enter>", "dscr":'Ent:HEAD', "fn":'svnj#cmmit#showCommits', "args":[':HEAD']},
                \ "\<C-p>"    :{"bop":"<c-p>", "dscr":'C-p:PREV', "fn":'svnj#cmmit#showCommits', "args":[':PREV']},
                \ "\<C-w>"    :{"bop":"<c-w>", "dscr":'C-w:Wrap!', "fn":'svnj#gopshdlr#toggleWrap'},
                \ "\<C-a>"    :{"bop":"<c-a>", "dscr":'C-a:Afiles', "fn":'svnj#cmmit#affectedfiles'},
                \ "\<C-y>"    :{"bop":"<c-y>", "dscr":'C-y:Cmd', "fn":'svnj#gopshdlr#cmd'},
                \ s:selectkey :{"bop":"<c-space>", "dscr":s:selectdscr, "fn":'svnj#cmmit#handleCommitsSelect'},
-               \ "\<C-s>"    : {"dscr":'C-s:stick!', "fn":'winj#hidePrompt'},
-               \ "\<F5>"     : {"dscr":'F5:redr', "fn":'winj#forceredr'},
+               \ "\<C-s>"    : {"dscr":'C-s:stick!', "fn":'svnj#prompt#setNoLoop'},
+               \ "\<F5>"     : {"dscr":'F5:redr', "fn":'svnj#act#forceredr'},
                \ }
 endf
 "3}}}
@@ -31,7 +31,7 @@ fun! svnj#cmmit#SVNCommits(...)
         unlet! s:cdict
     catch
         let cdict = svnj#dict#new("SVNCommits")
-        call svnj#utils#dbgHld("At SVNCommits", v:exception)
+        call svnj#utils#dbgMsg("At SVNCommits", v:exception)
         call svnj#dict#addErr(cdict, 'Failed ', v:exception)
         call winj#populateJWindow(cdict)
         unlet! cdict
@@ -49,11 +49,11 @@ fun! svnj#cmmit#svnCommits(target, maxlogs, cb)
         call svnj#stack#push('svnj#cmmit#svnCommits', [a:target, a:maxlogs, 'winj#populate'])
         call call(a:cb, [s:cdict])
     catch
-        call svnj#utils#dbgHld("At svnj#cmmit#svnCommits", v:exception)
+        call svnj#utils#dbgMsg("At svnj#cmmit#svnCommits", v:exception)
         call svnj#dict#addErr(s:cdict, 'Failed ', v:exception)
         call winj#populateJWindow(s:cdict)
     endtry
-    return 1
+    retu svnj#passed()
 endf
 "2}}}
 
@@ -61,10 +61,10 @@ endf
 fun! svnj#cmmit#handleCommitsSelect(argdict)
     try
         let [adict, akey] = [a:argdict.dict, a:argdict.key]
-        if svnj#select#remove(akey) | retu 1 | en
+        if svnj#select#remove(akey) | retu svnj#passed() | en
         let selectd = svnj#select#dict()
         if len(selectd) < 1
-            return svnj#select#add(akey, adict.commitsd.contents[akey].line,
+            retu svnj#select#add(akey, adict.commitsd.contents[akey].line,
                         \ adict.meta.url, "")
         endif
         let oldkey = matchstr(keys(selectd)[0], "\\d\\+")
@@ -73,8 +73,8 @@ fun! svnj#cmmit#handleCommitsSelect(argdict)
         let revisionB = adict.commitsd.contents[akey].revision
         call svnj#cmmit#showCommitsAcross(adict, revisionA, revisionB)
     catch
-        call svnj#utils#dbgHld("At handleCommitsSelect", v:exception)
-        return 0
+        call svnj#utils#dbgMsg("At handleCommitsSelect", v:exception)
+        retu svnj#failed()
     endtry
 endf
 
@@ -88,7 +88,7 @@ fun! svnj#cmmit#showCommitsAcross(dict, revisionA, revisionB)
 endf
 
 fun! svnj#cmmit#showCommits(argdict)
-    let [adict, akey, aline] = [a:argdict.dict, a:argdict.key, a:argdict.line]
+    let [adict, akey] = [a:argdict.dict, a:argdict.key]
     let aheadOrPrev = a:argdict.opt[0]
     if len(svnj#select#dict()) > 0 
         retu svnj#cmmit#handleCommitsSelect(a:argdict)
@@ -98,19 +98,7 @@ fun! svnj#cmmit#showCommits(argdict)
     
     let svncmd = 'svn diff --non-interactive -' . revision . aheadOrPrev .
                 \ ' --summarize '. adict.meta.fpath
-    retu s:showCommits(adict, svncmd, title)
-endf
-
-fun! s:showCommits(dict, svncmd, title)
-    let sdict = svnj#dict#new(a:title, {'meta' : deepcopy(a:dict.meta)})
-    let [slist, sdict.meta.cmd] = svnj#svn#summary(a:svncmd)
-    if empty(slist)
-        call svnj#dict#addErrTop(sdict, 'No commits found ..' , '' )
-    else
-        let ops = svnj#status#statusops() | call extend(ops, svnj#utils#topop())
-        call svnj#dict#addEntries(sdict, 'statusd', slist, ops)
-    endif
-    call winj#populate(sdict)
+    retu svnj#gopshdlr#showCommits(a:argdict.dict, svncmd, title)
 endf
 
 fun! svnj#cmmit#affectedfiles(argdict)
@@ -129,9 +117,9 @@ fun! svnj#cmmit#affectedfiles(argdict)
         let title = revision . '@' . url
         let [slist, adict.meta.cmd] = svnj#svn#affectedfiles(url, revision)
         call svnj#select#clear()
-        return svnj#gopshdlr#displayAffectedFiles(adict, title, slist)
+        retu svnj#gopshdlr#displayAffectedFiles(adict, title, slist)
     catch
-        call svnj#utils#dbgHld("At svnj#cmmit#affectedfiles", v:exception)
+        call svnj#utils#dbgMsg("At svnj#cmmit#affectedfiles", v:exception)
     endtry
 endf
 "2}}}

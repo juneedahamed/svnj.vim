@@ -7,38 +7,40 @@
 "svnj#brwsr.vim {{{1
 
 "vars {{{2
-if !exists('g:svnj_glb_init') | let g:svnj_glb_init = svnjglobals#init() | en
 call svnj#caop#fetchbmarks()
-let [s:selectkey, s:selectdscr] = svnj#utils#selkey()
+let [s:selkey, s:selectdscr] = svnj#utils#selkey()
 let [s:topkey, s:topdscr] = svnj#utils#topkey()
 let [s:reckey, s:recdscr] = svnj#utils#CtrlEntReplace('Rec')
 "2}}}
 
 "Key mappings for browseops {{{3
 fun! s:browseops()
-   return { 
-               \ "\<Enter>"  : {"bop":"<enter>", "dscr":'Ent:Opn', "fn":'svnj#brwsr#digin', "args":[0]},
-               \ s:reckey    : {"bop":"<c-enter>", "dscr":s:recdscr, "fn":'svnj#brwsr#digin', "args":[1]},
-               \ "\<C-u>"    : {"bop":"<c-u>", "dscr":'C-u:Up', "fn":'svnj#brwsr#digout'},
-               \ "\<C-h>"    : {"bop":"<c-h>", "dscr":'C-h:Home', "fn":'svnj#brwsr#root'},
-               \ "\<C-o>"    : {"bop":"<c-o>", "dscr":'C-o:OpnAll', "fn":'svnj#gopshdlr#openFltrdFiles', "args":['winj#newBufOpen']},
-               \ "\<C-v>"    : {"bop":"<c-v>", "dscr":'C-v:VS', "fn":'svnj#gopshdlr#openFile', "args":['winj#openVS']},
-               \ "\<C-d>"    : {"bop":"<c-d>", "dscr":'C-d:Diff', "fn":'svnj#gopshdlr#openFile', "args":['winj#diffFile']},
-               \ "\<C-l>"    : {"bop":"<c-l>", "dscr":'C-l:Log', "fn":'svnj#brwsr#fileLogs'},
-               \ "\<C-b>"    : {"bop":"<c-b>", "dscr":'C-b:Bk', "fn":'svnj#gopshdlr#book'},
-               \ s:topkey    : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
-               \ "\<C-i>"    : {"bop":"<c-i>", "dscr":'C-i:Info', "fn":'svnj#gopshdlr#info'},
-               \ "\<C-a>"    : {"bop":"<c-a>", "dscr":'C-a:Afls', "fn":'svnj#brwsr#affectedfiles'},
-               \ "\<C-r>"    : {"bop":"<c-r>", "dscr":'C-r:Redo', "fn":'svnj#brwsr#refresh'},
-               \ s:selectkey : {"bop":"<c-space>", "dscr":s:selectdscr, "fn":'svnj#gopshdlr#select'},
-               \ "\<C-s>"    : {"dscr":'C-s:stick!', "fn":'winj#hidePrompt'},
-               \ "\<F5>"     : {"dscr":'F5:redr', "fn":'winj#forceredr'},
-               \ }
+   retu { 
+       \ "\<Enter>": {"bop":"<enter>", "dscr":'Ent:Opn', "fn":'svnj#brwsr#digin', "args":[0, 0]},
+       \ s:reckey  : {"bop":"<c-enter>", "dscr":s:recdscr, "fn":'svnj#brwsr#digin', "args":[1]},
+       \ "\<C-u>"  : {"bop":"<c-u>", "dscr":'C-u:Up', "fn":'svnj#brwsr#digout'},
+       \ "\<C-h>"  : {"bop":"<c-h>", "dscr":'C-h:Home', "fn":'svnj#brwsr#root'},
+       \ "\<C-o>"  : {"bop":"<c-o>", "dscr":'C-o:OpnAll', "fn":'svnj#gopshdlr#openFltrdFiles', "args":['svnj#act#efile']},
+       \ "\<C-v>"  : {"bop":"<c-v>", "dscr":'C-v:VS', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#vs']},
+       \ "\<C-d>"  : {"bop":"<c-d>", "dscr":'C-d:Diff', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#diff']},
+       \ "\<C-l>"  : {"bop":"<c-l>", "dscr":'C-l:Log', "fn":'svnj#brwsr#fileLogs'},
+       \ "\<C-b>"  : {"bop":"<c-b>", "dscr":'C-b:Bk', "fn":'svnj#gopshdlr#book'},
+       \ s:topkey  : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
+       \ "\<C-i>"  : {"bop":"<c-i>", "dscr":'C-i:Info', "fn":'svnj#gopshdlr#info'},
+       \ "\<C-a>"  : {"bop":"<c-a>", "dscr":'C-a:Afls', "fn":'svnj#brwsr#affectedfiles'},
+       \ "\<C-r>"  : {"bop":"<c-r>", "dscr":'C-r:Redo', "fn":'svnj#brwsr#refresh'},
+       \ "\<C-k>"  : {"bop":"<c-k>", "dscr":'C-k:CheckOut', "fn":'svnj#brwsr#checkout'},
+       \ "\<C-z>"  : {"bop":"<c-z>", "dscr":'C-z:Commit', "fn":'svnj#gopshdlr#commit'},
+       \ "\<C-g>"  : {"bop":"<c-g>", "dscr":'C-g:Add', "fn":'svnj#gopshdlr#add'},
+       \ "\<C-p>"  : {"bop":"<c-p>", "dscr":'C-p:Paste', "fn":'svnj#brwsr#paste'},
+       \ s:selkey  : {"bop":"<c-space>", "dscr":s:selectdscr, "fn":'svnj#gopshdlr#select'},
+       \ "\<C-s>"  : {"dscr":'C-s:stick!', "fn":'svnj#prompt#setNoLoop'},
+       \ "\<C-e>"  : {"bop":"<c-e>", "dscr":'C-e:SelectAll', "fn":'svnj#gopshdlr#selectall'},
+       \ "\<F5>"   : {"dscr":'F5:redr', "fn":'svnj#act#forceredr'},
+       \ }
 endf
 "2}}}
-
 "3}}}
-
 
 "Browser {{{2
 fun! svnj#brwsr#SVNBrowse()
@@ -49,7 +51,7 @@ fun! svnj#brwsr#SVNBrowse()
         let bdict = svnj#dict#new("Browser")
         call svnj#dict#addErrUp(bdict, 'Failed ', v:exception)
         call winj#populateJWindow(bdict)
-        call svnj#utils#dbgHld('At svnj#Browse', v:exception)
+        call svnj#utils#dbgMsg('At svnj#Browse', v:exception)
         call bdict.clear()
         unlet! bdict
     endtry
@@ -79,7 +81,7 @@ fun! svnj#brwsr#SVNBrowseWC(...)
         let url = (a:0 > 1  && svnj#utils#isdir(a:2)) ? (a:2) : getcwd()
         call svnj#brwsr#svnBrowse(url, "", 0, recursive, 'winj#populateJWindow')
     catch
-        call svnj#utils#dbgHld("At svnj#brwsr#SVNBrowseWC", v:exception)
+        call svnj#utils#dbgMsg("At svnj#brwsr#SVNBrowseWC", v:exception)
         let bdict = svnj#dict#new("Browser")
         call svnj#dict#addErr(bdict, 'Failed ', v:exception)
         call winj#populateJWindow(bdict)
@@ -99,6 +101,8 @@ fun! svnj#brwsr#Menu(populatecb)
                 \ [svnj#dict#menuItem('MyList', 'svnj#brwsr#browseMyListMenuCb', "")], {})
     call svnj#dict#addEntries(bdict, 'menud',
                 \ [svnj#dict#menuItem('BookMarks', 'svnj#brwsr#browseBMarksMenuCb', "")], {})
+    call svnj#dict#addEntries(bdict, 'menud',
+                \ [svnj#dict#menuItem('Buffer', 'svnj#brwsr#browseBufferMenuCb', "")], {})
     
     let menuops = { 
                 \ "\<Enter>": {"bop":"<enter>", "dscr":'Enter:Open', "fn":'svnj#brwsr#browseMenuHandler'},
@@ -114,7 +118,7 @@ endf
 
 fun! svnj#brwsr#browseMenuHandler(argdict)
     let [adict, akey] = [a:argdict.dict, a:argdict.key]
-    return call(adict.menud.contents[akey].callback, [a:argdict])
+    retu call(adict.menud.contents[akey].callback, [a:argdict])
 endf
 
 fun! svnj#brwsr#browseRepoMenuCb(argdict)
@@ -124,10 +128,10 @@ fun! svnj#brwsr#browseRepoMenuCb(argdict)
         let url = adict.meta.url
         let recursive = len(a:argdict.opt) > 0 && a:argdict.opt[0] ==# 'recursive' ? 1 : 0
         let args = s:browsItArgs(url, "", 0, recursive, 'winj#populate')
-        return svnj#brwsr#browseIt(args)
+        retu svnj#brwsr#browseIt(args)
     catch
-        call svnj#utils#dbgHld("At svnj#brwsr#browseRepoMenuCb", v:exception)
-        call svnj#utils#showErrorConsole("Failed the current dir/file " .
+        call svnj#utils#dbgMsg("At svnj#brwsr#browseRepoMenuCb", v:exception)
+        call svnj#utils#showerr("Failed the current dir/file " .
                     \ "May not be a valid svn entity")
     endtry
 endf
@@ -140,9 +144,9 @@ fun! svnj#brwsr#browseWCMenuCb(argdict)
         if url == "" | let url = getcwd() | en
         let recursive = len(a:argdict.opt) > 0 && a:argdict.opt[0] ==# 'recursive' ? 1 : 0
         let args = s:browsItArgs(url, "", 0, recursive, 'winj#populate')
-        return svnj#brwsr#browseIt(args)
+        retu svnj#brwsr#browseIt(args)
     catch
-        return svnj#utils#showErrorConsole("Failed the current dir/file " .
+        retu svnj#utils#showerr("Failed the current dir/file " .
                     \ "May not be a valid svn entity")
     endtry
 endf
@@ -195,11 +199,11 @@ fun! svnj#brwsr#browseIt(args)
         unlet! entries
     catch
         call svnj#dict#addErrUp(bdict, 'Failed ', v:exception)
-        call svnj#utils#dbgHld("At svnj#brwsr#browseIt", v:exception)
+        call svnj#utils#dbgMsg("At svnj#brwsr#browseIt", v:exception)
         let result = 0
     endtry
     call call(a:args.populatecb, [bdict])
-    return result
+    retu result
 endf
 "2}}}
 
@@ -221,9 +225,9 @@ fun! svnj#brwsr#root(argdict)
 
         if url == "" | let url = expand("$HOME") | en
         call svnj#brwsr#svnBrowse(url, "", 0, brecursive, 'winj#populate')
-        return 1
-    catch | call svnj#utils#dbgHld("At svnj#brwsr#root", v:exception) | endt
-    return 0
+        retu svnj#passed()
+    catch | call svnj#utils#dbgMsg("At svnj#brwsr#root", v:exception) | endt
+    retu svnj#failed()
 endf
 
 fun! svnj#brwsr#digin(argdict)
@@ -234,13 +238,19 @@ fun! svnj#brwsr#digin(argdict)
         if svnj#utils#isdir(newurl) || svnj#svn#issvndir(newurl)
             let args = {'url' : newurl, 'purl': adict.bparent, 'igndirs' : 0,
                         \ 'recursive' : arec, 'populatecb' : 'winj#populate'}
-            return svnj#brwsr#browseIt(args)
+            retu svnj#brwsr#browseIt(args)
         else
             call svnj#select#add(akey, aline, newurl, "")
-            retu svnj#select#openFiles('winj#newBufOpen', g:svnj_max_open_files)
+            "1 is passed from BrowseBuffer to close on open
+            if a:argdict.opt[1]  
+                call svnj#select#openFiles('svnj#act#efile', g:svnj_max_open_files)
+                retu svnj#fltrclearandexit()
+            else
+                retu svnj#select#openFiles('svnj#act#efile', g:svnj_max_open_files)
+            endif
         endif
-    catch | call svnj#utils#dbgHld("At svnj#brwsr#digin", v:exception) | endt
-    return 0
+    catch | call svnj#utils#dbgMsg("At svnj#brwsr#digin", v:exception) | endt
+    retu svnj#failed()
 endf
 
 fun! svnj#brwsr#digout(argdict)
@@ -254,10 +264,10 @@ fun! svnj#brwsr#digout(argdict)
         endif
         let args = {'url' : newurl, 'purl': adict.bparent, 'igndirs' : 0,
                     \ 'recursive' : adict.brecursive, 'populatecb' : 'winj#populate'}
-        return svnj#brwsr#browseIt(args)
-    catch | call svnj#utils#dbgHld("Exception at digout", v:exception)
+        retu svnj#brwsr#browseIt(args)
+    catch | call svnj#utils#dbgMsg("Exception at digout", v:exception)
     endtry
-    return 0
+    retu svnj#failed()
 endf
 
 fun! svnj#brwsr#fileLogs(argdict)
@@ -268,17 +278,18 @@ fun! svnj#brwsr#fileLogs(argdict)
                         \  'igndirs' : 0, 'recursive' : 0,
                         \  'populatecb' : 'winj#populate'}
             call svnj#stack#push('svnj#brwsr#browseIt', [args])
-        catch | call svnj#utils#dbgHld("Exception at svnj#brwsr#fileLogs", v:exception)
+        catch 
+            call svnj#utils#dbgMsg("Exception at svnj#brwsr#fileLogs", v:exception)
         endt
 
         let pathurl = svnj#utils#joinPath(adict.bparent, aline)
         if svnj#svn#validURL(pathurl)
             call svnj#log#logs(pathurl, g:svnj_max_logs, 'winj#populate', 0)
         else 
-            call svnj#utils#showErrorConsole("Failed, May not be a valid svn entity")
+            call svnj#utils#showerr("Failed, May not be a valid svn entity")
         endif
-    catch | call svnj#utils#showErrorConsole("Failed, Exception") | endt
-    return 1
+    catch | call svnj#utils#showerr("Failed, Exception") | endt
+    retu svnj#passed()
 endf
 
 fun! svnj#brwsr#affectedfiles(argdict)
@@ -288,21 +299,21 @@ fun! svnj#brwsr#affectedfiles(argdict)
                     \  'igndirs' : 0, 'recursive' : 0,
                     \  'populatecb' : 'winj#populate'}
         call svnj#stack#push('svnj#brwsr#browseIt', [args])
-    catch | call svnj#utils#dbgHld("Exception at svnj#brwsr#affectedfiles", v:exception)
+    catch | call svnj#utils#dbgMsg("Exception at svnj#brwsr#affectedfiles", v:exception)
     endt
 
     try
         let url = svnj#utils#joinPath(adict.bparent, aline)
         let lcr = svnj#svn#lastChngdRev(url)
         if lcr == ""
-            call svnj#utils#showErrorConsole("May Not be a valid svn entity")
-            return
+            call svnj#utils#showerr("May Not be a valid svn entity")
+            retu
         endif
         let title = lcr . '@' . url
         let [slist, adict.meta.cmd] = svnj#svn#affectedfiles(url, lcr)
-        return svnj#gopshdlr#displayAffectedFiles(adict, title, slist)
+        retu svnj#gopshdlr#displayAffectedFiles(adict, title, slist)
     catch
-        call svnj#utils#dbgHld("At svnj#brwsr#affectedfiles", v:exception)
+        call svnj#utils#dbgMsg("At svnj#brwsr#affectedfiles", v:exception)
     endtry
 endf
 
@@ -313,9 +324,108 @@ fun! svnj#brwsr#refresh(argdict)
         call svnj#caop#cls(newurl)
         let args = {'url' : newurl, 'purl': adict.bparent, 'igndirs' : 0,
                     \ 'recursive' : 1, 'populatecb' : 'winj#populate'}
-        return svnj#brwsr#browseIt(args)
-    catch | call svnj#utils#dbgHld("At svnj#brwsr#refresh", v:exception) | endt
+        retu svnj#brwsr#browseIt(args)
+    catch | call svnj#utils#dbgMsg("At svnj#brwsr#refresh", v:exception) | endt
+endf
 
+fun! svnj#brwsr#checkout(argdict)
+    try
+        let [adict, aline] = [a:argdict.dict, a:argdict.line]
+        let newurl = svnj#utils#joinPath(adict.bparent, aline)
+        if svnj#svn#issvndir(newurl) && !svnj#utils#isdir(newurl)
+            let title = " SVN CHECKOUT : " . newurl
+            let descr = "   Applicable Args are \n" .
+                        \ "   . = " . getcwd() . ",\n" .
+                        \ "   Enter = NoArgs,\n".
+                        \ "   Esc = Abort  OR \n" .
+                        \ "   type the directory name\n"
+            let dest = svnj#utils#input(title, descr, "Args : "  )
+            if dest != "\<Esc>" 
+                try
+                    let newurl = substitute(fnameescape(newurl), "/$", "", "g")
+                    let cmd = "svn co --non-interactive " . newurl . " " . dest
+
+                    echohl Title | echo "" | echon "Will execute : " 
+                    echohl Search | echon cmd  | echohl None
+                    echohl Question | echo "" | echon "y to continue, Any to cancel : " 
+                    echohl None
+
+                    if svnj#utils#getchar() ==? "y"
+                        call svnj#utils#showConsoleMsg("Performing chekout, please wait ..", 0)
+                        call svnj#utils#execShellCmd(cmd)
+                        call svnj#utils#showConsoleMsg("Checked out", 1)
+                    endif
+                catch | call svnj#utils#showerr(v:exception) | endt
+            endif
+        else | call svnj#utils#showerr("Should be repository dir to checkout") | en
+    catch | call svnj#utils#dbgMsg("At svnj#brwsr#checkout", v:exception) | endt
+    retu svnj#passed()
+endf
+
+fun! s:selected(tourl)
+    let entries = []
+    for val in values(svnj#select#dict())
+        call add(entries, val.path)
+    endfor
+
+    if len(entries) <= 0
+        call svnj#utils#showerr("Nothing selected")
+        return [svnj#failed(), []]
+    endif
+
+    if index(entries, a:tourl) >= 0
+        call svnj#utils#showerr("Cannot copy to self")
+        retu [svnj#failed(), []]
+    endif
+
+    return [svnj#passed(), entries]
+endf
+
+fun! s:normalizeTarget(tourl)
+    if !svnj#svn#issvndir(a:tourl) 
+        let tempurl = fnamemodify(a:tourl, ':p:h') 
+        call svnj#utils#showConsoleMsg(a:tourl . " is not a versioned directory, copy to " .
+                    \ tempurl . " ?", 0)
+        echohl Question | echo "y : yes, Any key abort : " | echohl None
+        retu svnj#utils#getchar() ==? 'y' ? [1, tempurl] : [0, a:tourl]
+    endif
+    retu [1, a:tourl]
+endf
+
+fun! svnj#brwsr#paste(argdict)
+    try
+        let [adict, aline] = [a:argdict.dict, a:argdict.line]
+        let tourl = svnj#utils#joinPath(adict.bparent, aline)
+
+        let[result, thelist] = s:selected(tourl)
+        if result == svnj#failed() | retu svnj#failed() | en
+
+        let [result, tourl] = s:normalizeTarget(tourl)
+        if !result | retu svnj#failed() | en
+        call add(thelist, tourl)
+
+        let alllocals = filter(copy(thelist), 'svnj#utils#localFS(v:val) > 0')
+        let is_local =  len(alllocals) == len(thelist) ? 1 : 0
+        let is_repo = len(alllocals) == 0 ? 1 : 0
+
+        if !is_local && !is_repo
+            retu svnj#utils#showerr("Cannot paste from working copy to repo or vice-versa")
+        endif
+
+        if is_repo || is_local
+            let [result, response] = call( is_repo ? 'svnj#cpy#repo' :
+                        \ 'svnj#svn#copywc', [thelist])
+            if result == svnj#passed()
+                call svnj#select#clear()
+                call svnj#select#resign(adict)
+            endif
+            return result
+        endif
+    catch 
+        call svnj#utils#dbgMsg("At svnj#brwsr#paste", v:exception)
+        retu svnj#failed()
+    endt
+    retu svnj#passed()
 endf
 "2}}}
 
@@ -326,7 +436,7 @@ fun! svnj#brwsr#SVNBrowseMarked()
 endf
 
 fun! svnj#brwsr#browseBMarksMenuCb(...)
-    return svnj#brwsr#bmarked('winj#populate')
+    retu svnj#brwsr#bmarked('winj#populate')
 endf
 
 fun! svnj#brwsr#bmarked(populateCb)
@@ -343,9 +453,9 @@ fun! svnj#brwsr#bmarked(populateCb)
         unlet! entries
         call call(a:populateCb, [bdict])
         unlet! bdict
-    catch | call svnj#utils#dbgHld("At svnj#brwsr#bmarked", v:exception)
+    catch | call svnj#utils#dbgMsg("At svnj#brwsr#bmarked", v:exception)
     endtry
-    return 1
+    retu svnj#passed()
 endf
 "2}}}
 
@@ -381,9 +491,52 @@ fun! svnj#brwsr#brwsMyList(populateCb)
         endif
         call call(a:populateCb, [bdict])
         unlet! bdict
-    catch | call svnj#utils#dbgHld("At svnj#brwsr#brwsMyList", v:exception) 
+    catch | call svnj#utils#dbgMsg("At svnj#brwsr#brwsMyList", v:exception) 
     endtry
-    return 1
+    retu svnj#passed()
+endf
+"2}}}
+
+"Browse Buffer {{{2
+fun! svnj#brwsr#SVNBrowseBuffer()
+    call svnj#init()
+    let curbufname =  bufname("%")
+    call svnj#brwsr#brwsBuffer('winj#populateJWindow', curbufname)
+endf
+
+fun! svnj#brwsr#browseBufferMenuCb(...)
+    let curbufname =  bufname("%")
+    call svnj#brwsr#brwsBuffer('winj#populate', curbufname)
+endf
+
+fun! svnj#brwsr#brwsBuffer(populateCb, curbufname)
+    let bdict = svnj#dict#new("BrowseBuffer")
+    try
+        let bdict.meta = svnj#svn#blankMeta()
+        call svnj#stack#push('svnj#brwsr#brwsBuffer', ['winj#populate', a:curbufname])
+    
+        let files = svnj#utils#buffiles(a:curbufname)
+        if empty(files) 
+            call svnj#dict#addErrUp(bdict, "No files", "")
+        else
+            let ops = s:browseops()
+
+            call remove(ops, "\<C-u>")
+            call remove(ops, "\<C-r>")
+            call remove(ops, "\<Enter>")
+
+            call extend(ops, {"\<Enter>"  : {"bop":"<enter>", "dscr":'Ent:Opn', "fn":'svnj#brwsr#digin', "args":[0, 1]},})
+            call extend(ops, {"\<C-r>"  : {"bop":"<c-r>", "dscr":'C-r:Refresh', "fn":'svnj#brwsr#browseBufferMenuCb', "args":[]},})
+            call extend(ops, {"\<C-q>"  : {"bop":"<c-q>", "dscr":'C-q:Quit', "fn":'svnj#gopshdlr#closeBuffer', "args":[a:curbufname]},})
+
+            let entries = svnj#utils#formatBrowsedEntries(files)
+            call svnj#dict#addBrowseEntries(bdict, 'browsed', entries, ops)
+        endif
+        call call(a:populateCb, [bdict])
+        unlet! bdict
+    catch | call svnj#utils#dbgMsg("At svnj#brwsr#brwsMyList", v:exception) 
+    endtry
+    retu svnj#passed()
 endf
 "2}}}
 "1}}}

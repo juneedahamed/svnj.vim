@@ -7,8 +7,8 @@
 "SVN command parsers {{{1
 
 fun! svnj#svn#info(url) "{{{2
-    let svncmd = 'svn info --non-interactive ' . a:url
-    return svnj#utils#execShellCmd(svncmd)
+    let svncmd = 'svn info --non-interactive ' . fnameescape(a:url)
+    retu svnj#utils#execShellCmd(svncmd)
 endf
 "2}}}
 
@@ -20,13 +20,95 @@ fun! svnj#svn#infolog(url) "{{{2
         let svncmd = 'svn log --non-interactive -' . a:url
         let result = result . svnj#utils#execShellCmd(svncmd)
     catch
-        call svnj#utils#dbgHld("svnj#svn#infolog", v:exception)
+        call svnj#utils#dbgMsg("svnj#svn#infolog", v:exception)
         let result = v:exception
     endtry
-    return result
+    retu result
 endf
 "2}}}
 
+fun! svnj#svn#log_stoponcopy(url) "{{{2
+    try
+        let svncmd = 'svn log --non-interactive --stop-on-copy -q ' .
+                \ fnameescape(svnj#utils#expand(a:url))
+
+        let shellout = svnj#utils#execShellCmd(svncmd)
+        let shellist = reverse(split(shellout, '\n'))
+        for i in range(0, len(shellist)-1)
+            let curline = shellist[i]
+            if len(matchstr(curline, '^r')) > 0 
+                let contents = split(curline, '|')
+                let revision = svnj#utils#strip(contents[0])
+                retu revision
+            endif
+        endfor
+    catch:
+        call svnj#utils#dbgMsg("svnj#svn#log_stoponcopy", v:exception)
+    endtry
+    retu ""
+endf
+"2}}}
+
+fun! svnj#svn#add(addfileslist) "{{{2
+    let addfileslist = map(a:addfileslist, 'fnameescape(v:val)')
+    let filestoadd = join(addfileslist, " ")
+
+    echohl Title | echo "Will add " . len(a:addfileslist) . " files"
+    echohl Directory | echo join(addfileslist, "\n")
+    echohl Question | echo "y to continue Any key to cancel" | echohl None
+
+    if svnj#utils#getchar() !=? 'y' | retu "Aborted" | en
+    if filestoadd != ""
+        let svncmd = "svn add --non-interactive " . filestoadd
+        retu svnj#utils#execShellCmd(svncmd)
+    endif
+    retu ""
+endf
+"2}}}
+
+fun! svnj#svn#commit(commitlog, commitfileslist) "{{{2
+    let commitfileslist = map(a:commitfileslist, 'fnameescape(v:val)')
+    let filestocommit = join(commitfileslist, " ")
+    if a:commitlog == "!"
+        let svncmd = "svn ci --non-interactive -m \"\" " . filestocommit
+    else
+        let svncmd = "svn ci --non-interactive -F " . a:commitlog . " " . filestocommit
+    endif
+    echo "Please wait sent command waiting for response ..."
+    retu svnj#utils#execShellCmd(svncmd)
+endf
+"2}}}
+
+fun! svnj#svn#copyrepo(commitlog, urls) "{{{2
+    let urls = map(a:urls, 'fnameescape(v:val)')
+    let urlstr = join(urls, " ")
+    if a:commitlog == "!"
+        let svncmd = "svn cp --non-interactive -m \"\" " . urlstr
+    else
+        let svncmd = "svn cp --non-interactive -F " . a:commitlog . " " . urlstr
+    endif
+    echo "Please wait sent command waiting for response ..."
+    retu [svnj#passed(), svnj#utils#execShellCmd(svncmd)]
+endf
+"2}}}
+
+fun! svnj#svn#copywc(urls) "{{{2
+    let urls = map(a:urls, 'fnameescape(v:val)')
+    let urlstr = join(urls, " ")
+    let svncmd = "svn cp --non-interactive " . urlstr
+    echohl Title | echo "Will execute the following command"
+    echohl Directory | echo svncmd
+    echohl Question | echo "Press y to continue, Any key to cancel" 
+    echohl None
+    let choice = input("Enter choice: ")
+    if choice ==? "y"
+        echo "Please wait sent command waiting for response ..."
+        retu [svnj#passed(), svnj#utils#execShellCmd(svncmd)]
+    else
+        retu [svnj#failed(), "Aborted"]
+    endif
+endf
+"2}}}
 
 fun! svnj#svn#url(absfpath) "{{{2
     let fileurl = a:absfpath
@@ -36,7 +118,7 @@ fun! svnj#svn#url(absfpath) "{{{2
         let fileurl = substitute(urllines[0], 'URL: ', '', '')
         let fileurl = substitute(fileurl, '\n', '', '')
     endif
-    return fileurl
+    retu fileurl
 endf
 "2}}}
 
@@ -45,10 +127,10 @@ fun! svnj#svn#issvndir(absfpath) "{{{2
         let svncmd = 'svn info --non-interactive ' . fnameescape(svnj#utils#expand(a:absfpath))
         let nodekindline = s:matchShellOutput(svncmd, "^Node Kind:")
         if len(nodekindline) > 0
-            return matchstr(nodekindline, "directory") != ""
+            retu matchstr(nodekindline, "directory") != ""
         endif
-    catch | retu 0 | endtry
-    return 0
+    catch | retu svnj#failed() | endtry
+    retu svnj#failed()
 endf
 "2}}}
 
@@ -60,7 +142,7 @@ fun! svnj#svn#getMeta(fileabspath) "{{{2
     let metad.isdir = svnj#svn#issvndir(a:fileabspath)
     let metad.fpath = a:fileabspath == "" ? getcwd() : a:fileabspath
     let metad.wrd=svnj#svn#workingRoot()
-    return metad
+    retu metad
 endf
 "2}}}
 
@@ -72,7 +154,7 @@ fun! svnj#svn#getMetaFS(fileabspath) "{{{2
     let metad.isdir = 0
     let metad.fpath = a:fileabspath == "" ? getcwd() : a:fileabspath
     let metad.wrd="/"
-    return metad
+    retu metad
 endf
 "2}}}
 
@@ -82,7 +164,7 @@ fun! svnj#svn#blankMeta() "{{{2
     let metad.url = ""
     let metad.fpath = ""
     let metad.wrd=""
-    return metad
+    retu metad
 endf
 "2}}}
 
@@ -93,31 +175,12 @@ fun! svnj#svn#getMetaURL(url) "{{{2
     let metad.fpath = ""
     let metad.isdir = 0
     let metad.wrd=svnj#svn#workingRoot()
-    return metad
-endf
-"2}}}
-
-fun! svnj#svn#branchRoot(bURL) "{{{2
-    for brnch in g:p_burls
-        if stridx(a:bURL, brnch, 0) == 0  | return brnch | en
-    endfor
-    return ""
-endf
-"2}}}
-
-fun! svnj#svn#branchName(bURL) "{{{2
-    let baseURL = svnj#svn#branchRoot(a:bURL)
-    if baseURL != ""
-        let sidx = len(baseURL)
-        let eidx = stridx(a:bURL, '/', sidx)
-        return  strpart(a:bURL, sidx, eidx - sidx) . '/'
-    endif
-    return ''
+    retu metad
 endf
 "2}}}
 
 fun! svnj#svn#workingRoot() "{{{2
-    return len(g:p_wcrp) == 0 || isdirectory(g:p_wcrp) == 0 ?
+    retu len(g:p_wcrp) == 0 || svnj#utils#isdir(g:p_wcrp) == 0 ?
                 \ svnj#svn#workingCopyRootPath() : g:p_wcrp
 endf
 "2}}}
@@ -131,12 +194,12 @@ fun! svnj#svn#workingCopyRootPath() "{{{2
             let tokens = split(lines[0], ':')
             if len(tokens) >= 2
                 let tmpworkingdir = svnj#utils#strip(tokens[1])
-                if isdirectory(tmpworkingdir) | return tmpworkingdir | en
+                if svnj#utils#isdir(tmpworkingdir) | retu tmpworkingdir | en
             endif
         endif
     catch
     endtry
-    return getcwd()
+    retu getcwd()
 endf
 "2}}}
 
@@ -148,11 +211,11 @@ fun! svnj#svn#repoRoot() "{{{2
         if len(lines) >= 1
             let root = substitute(lines[0], "^Repository Root:", "", "")
             let root = svnj#utils#strip(root)
-            return root
+            retu root
         endif
     catch
     endtry
-    return getcwd()
+    retu getcwd()
 endf
 "2}}}
 
@@ -161,7 +224,7 @@ fun! svnj#svn#svnRootVersion(workingcopydir) "{{{2
                 \ a:workingcopydir . ' | grep ^r'
     let shellout = svnj#utils#execShellCmd(svncmd)
     let revisionnum = svnj#utils#strip(split(shellout, '|')[0])
-    return revisionnum
+    retu revisionnum
 endf
 "2}}}
 
@@ -169,33 +232,34 @@ fun! svnj#svn#validURL(svnurl) "{{{2
     let svncmd = 'svn info --non-interactive ' . a:svnurl
     try
         let shellout = svnj#utils#execShellCmd(svncmd)
-    catch | retu 0 | endtry
-    return 1
+    catch | retu svnj#failed() | endtry
+    retu svnj#passed()
 endf
 "2}}}
 
 fun! svnj#svn#validateSVNURLInteractive(sysURL) "{{{2
-    if !svnj#svn#validURL(a:sysURL)
+    if len(a:sysURL) == 0 || !svnj#svn#validURL(a:sysURL)
         echohl WarningMsg | echo 'Failed to construct svn url: '
                     \ | echo a:sysURL | echohl None
         let inputurl = input('Enter URL : ')
         if len(inputurl) > 1 && svnj#svn#validURL(inputurl)
-            return inputurl
+            retu inputurl
         endif
     else
-        return a:sysURL
+        retu a:sysURL
     endif
     throw 'Invalid URL'
 endf 
 "2}}}
 
 fun! svnj#svn#isTrunk(URL) "{{{2
-    return g:p_turl != '' && stridx(a:URL, g:p_turl, 0) == 0
+    if svnj#svn#isBranch(a:URL) | retu 0 | en
+    retu g:p_turl != '' && stridx(a:URL, g:p_turl, 0) == 0
 endf
 "2}}}
 
 fun! svnj#svn#isBranch(URL) "{{{2
-    return len(filter(copy(g:p_burls), 'stridx(a:URL, v:val,0) == 0')) > 0
+    retu len(filter(copy(g:p_burls), 'stridx(a:URL, v:val,0) == 0')) > 0
 endf
 "2}}}
 
@@ -203,8 +267,8 @@ fun! svnj#svn#isWCDir() "{{{2
     let svncmd = 'svn info --non-interactive ' . getcwd()
     try
         let shellout = svnj#utils#execShellCmd(svncmd)
-    catch | retu 0 | endtry
-    return 1
+    catch | retu svnj#failed() | endtry
+    retu svnj#passed()
 endf
 "2}}}
 
@@ -222,13 +286,13 @@ fun! svnj#svn#list(url, rec, ignore_dirs)  "{{{2
     let linenum = 0
     for line in  shelloutlist
         if len(matchstr(line, g:p_ign_fpat)) != 0 | con | en
-        if a:ignore_dirs == 1 && isdirectory(line) | con | en
+        if a:ignore_dirs == 1 && svnj#utils#isdir(line) | con | en
         let linenum += 1
         let line = printf("%4d:%s", linenum, line)
         call add(entries, line)
     endfor
     unlet! shelloutlist
-    return entries
+    retu entries
 endf
 
 fun! s:globsvnrec(url)
@@ -252,13 +316,13 @@ fun! s:globsvnrec(url)
             call extend(tdirs, tdirs2)
             unlet! flist tfiles tdirs2 
         catch
-            "call svnj#utils#dbgHld("At globsvnrec", v:exception)
+            "call svnj#utils#dbgMsg("At globsvnrec", v:exception)
         endt
     endwhile
     unlet! tdirs
 
     call svnj#caop#cache("repo", burl, files)
-    return files
+    retu files
 endf
 
 fun! s:filedirs(curdir, flist)
@@ -268,7 +332,7 @@ fun! s:filedirs(curdir, flist)
         call call('add', [svnj#utils#isSvnDirReg(entry) ? dirs : files, 
                     \ svnj#utils#joinPath(a:curdir,entry)])
     endfor
-    return [files, dirs]
+    retu [files, dirs]
 endf
 "2}}}
 
@@ -308,7 +372,7 @@ fun! svnj#svn#logs(maxlogs, svnurl) "{{{2
         endfor
         unlet! shellist
     catch | endtry
-    return [logentries, svncmd]
+    retu [logentries, svncmd]
 endf
 "2}}}
 
@@ -327,7 +391,7 @@ fun! svnj#svn#summary(svncmd) "{{{2
         call add(statuslist, statusentryd)
     endfor
     unlet! shelloutlist
-    return [statuslist, a:svncmd]
+    retu [statuslist, a:svncmd]
 endf
 "2}}}
 
@@ -335,7 +399,7 @@ fun! svnj#svn#affectedfilesAcross(url, revisionA, revisionB) "{{{2
     let revisiondiff = a:revisionA.':'.a:revisionB
     let svncmd = 'svn diff --summarize --non-interactive  -' . 
                 \ revisiondiff . ' '. a:url
-    return svnj#svn#summary(svncmd)
+    retu svnj#svn#summary(svncmd)
 endf
 "2}}}
 
@@ -343,7 +407,7 @@ fun! svnj#svn#affectedfiles(url, revision) "{{{2
     let revision = matchstr(a:revision, "\\d\\+")
     let svncmd = 'svn diff --summarize --non-interactive -c' .
                 \ revision . ' ' . a:url
-    return svnj#svn#summary(svncmd)
+    retu svnj#svn#summary(svncmd)
 endf
 "2}}}
 
@@ -355,7 +419,7 @@ fun! svnj#svn#currentRevision(svnurl) "{{{2
         let lines = s:matchShellOutput(svncmd, find)
         let revision = svnj#utils#strip(substitute(lines[0], find, '', ''))
     catch | endtry
-    return revision
+    retu revision
 endf
 "2}}}
 
@@ -367,7 +431,7 @@ fun! svnj#svn#lastChngdRev(svnurl) "{{{2
         let lines = s:matchShellOutput(svncmd, find)
         let lastChngdRev = svnj#utils#strip(substitute(lines[0], find, '', ''))
     catch | endtry
-    return lastChngdRev
+    retu lastChngdRev
 endf
 "2}}}
 

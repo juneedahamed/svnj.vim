@@ -8,33 +8,80 @@ CONTENTS                                                        *svnj-contents*
     3. OPTIONS...................................................|svnj-options|
     4. MAPPINGS..................................................|svnj-mappings|
     5. CUSTOMIZE.................................................|svnj-customize|
+    6. RECOMENDED Settings.............................|svnj-recomended-settings|
 ================================================================================
 
 INTRO                                                              *svnj-intro*
 
 Plugin for subversion, supported operations are
-    1. svn log   use |SVNLog| 
-    2. svn st    use |SVNStatus|
-    3. svn diff  use |SVNDiff|  or |SVNLog| or |SVNCommits|
-    4. svn blame use |SVNBlame|
-    5. svn info  use |SVNInfo|
-    6. svn list  use |SVNBrowse| or |SVNBrowseRepo|
-    7. misc          |SVNBrowseWorkingCopy| or |SVNBrowseMyList| and 
+    1. svn ci    use |SVNCommit|
+    2. svn log   use |SVNLog|  
+    3. svn st    use |SVNStatus|
+    4. svn diff  use |SVNDiff|  or |SVNLog| or |SVNCommits|
+    5. svn blame use |SVNBlame|
+    6. svn info  use |SVNInfo|
+    7. svn list  use |SVNBrowse| or |SVNBrowseRepo|
+    8. svn co   use  |SVNBrowseRepo|
+    9. svn add  use  |SVNBrowseWorkingCopy| |SVNBrowseBuffer| or
+                     |SVNStatus|
+   10. svn cp   use  |SVNBrowseWorkingCopy|
+   11. misc          |SVNBrowseWorkingCopy| or |SVNBrowseMyList| and 
                      |SVNBrowseBookMarks|
                      |SVNClearCache|
-
+                     |SVNBrowseBuffer|
 
 ================================================================================
 COMMANDS                                                         *svnj-commands*
 
+:SVNCommit [Arguments]                                              *SVNCommit*
+ 
+  Commits the file in buffer to repo. The other option to commit is using 
+  SVNStatus command. Ctrl-z will commit the selected files from status output.
+  The commit log lists the files that are selected for commit, The commit log
+  provides option to unselect any file from performing commit by deleting the
+  line listing the file from the commit log. Ctrl-s is the key to commit and
+  Ctrl-q is to quit from with in the commit log.
+  SVNCommits is the command to list all commit/checkins performed. All/most of
+  the operations of SVNCommits can now be done using SVNLog. SVNCommits will
+  later be removed.
+
+  Arguments:~
+ 
+   <none>    : A commit log will be displayed to accept comments for commiting the
+               file in buffer
+  <dir/file> : Accepts directories/files (autocompletion available). 
+      !      : Forces commit without comments.
+
+    
+:SVNAdd [Arguments]                                                  *SVNAdd*
+
+  Add and Commit new files/directories to repo,  Other way is to use the 
+  SVNStatus | SVNBrowse outputs. The command brings out SVNJ Add buffer
+  with the list of files selected. The files can be deleted/added here 
+  (should follow the same syntax to add). Options to svn add and then svn
+  commit or just svn add or cancel will be available from the said buffer.
+
+  Arguments:~
+ 
+   <none>      : Adds the file in buffer to repo
+  <dirs/files> : Accepts directories/files (autocompletion available). 
+    
 :SVNBlame                                                            *SVNBlame*
 
   Vertically splits the blame info for the file in bufffer. Scrollbinds to the
   file.
 
-:SVNInfo                                                            *SVNInfo*
+:SVNInfo [Arguments]                                               *SVNInfo*
 
-  Display svn info for the file in buffer
+  Display svn info
+
+  Arguments:~
+
+   <none>     : SVN Info of the current dir if no file in buffer else 
+                of Info of file in buffer
+    %         : SVN Info of the file in buffer
+   <file/dir> : SVN Info of the passed file/dir
+    .         : SVN Info of current dir
 
 :SVNDiff                                                             *SVNDiff*
 
@@ -42,6 +89,8 @@ COMMANDS                                                         *svnj-commands*
   use :SVNLog and then select the required revision to diff. See SVNLog for
   more info. Other possibilities are to use any any browse commands and then
   diff with the browsed file.
+  If there are more than one file in buffer Ctrl-n/Ctrl-p will close the current
+  diff and moves to the next/prev file in buffer and opens a diff for the said file
 
 
 :SVNStatus [Arguments]                                             *SVNStatus* 
@@ -66,12 +115,21 @@ COMMANDS                                                         *svnj-commands*
   Key-Mappings:~
   
   |Enter|      : Open file under cursor and those marked
-  |Ctrl-space| : mark the file for open
-  |Ctrl-o|     : open all listed file
+  |Ctrl-space| : Select/Mark the file for open
+  |Ctrl-o|     : Open all listed file
   |Ctrl-i|     : SVN info 
-  |Ctrl-d|     : Diff with the file in buffer
-  |Ctrl-w|     : toggle the wrap settings
+  |Ctrl-d|     : Diff with the file in buffer (svn diff)
+  |Ctrl-w|     : Toggle the wrap settings
   |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
+  |Ctrl-e|     : Select/Mark All
+  |Ctrl-z|     : Commit selected/marked  (svn ci)
+  |Ctrl-g|     : Add selected/marked as new repo elements (svn add)
+  |F5|         : Redraw the buffer
+
+  Global-Options:~
+
+  See help on following options  |g:svnj_max_open_files|, |g:svnj_ignore_files|,
+  |g:svnj_signs|, |g:svnj_window_max_size|, |g:svnj_fuzzy_search|
 
 
 :SVNLog [Arguments]                                                      *SVNLog*
@@ -80,6 +138,13 @@ COMMANDS                                                         *svnj-commands*
   current revision. To diff with a single revision navigate to the line using Up
   and Down Arrows and then press Enter. Diff will be done with selected revision 
   and the buffer file. Supports up to 2 revisions to be selected for diff.
+  The status line shows the current revision and also the revision when the branch
+  was created as "S@" 
+  Also provides mechanism to diff the file across branches/trunk. A menu will be 
+  displayed to list revisions from available branches and trunk. This requires that
+  g:svnj_branch_url and g:svnj_trunk_url be defined. 
+  Also provides mechanism to diff files by browsing. The browse menu will displayed
+  at the end. See help:SVNBrowse for more info
   
   Arguments:~
 
@@ -99,15 +164,25 @@ COMMANDS                                                         *svnj-commands*
   |Enter|      : Opens file at cursor for diff
                  If files were marked, opens all marked files for diff (max 2)  
                  Mapped Ctrl-q to the diffed buffer
-  |Ctrl-Enter| : open marked revisons or revison under cursor as new file - no split
-  |Ctrl-v|     : vertical split the revision
+  |Ctrl-Enter| : Open marked revisons or revison under cursor as new file - no split
+  |Ctrl-v|     : Vertical split the revision
   |Ctrl-i|     : SVN Info and Log of revision
-  |Ctrl-w|     : toggle the wrap settings. Helpful if the comments are longer
+  |Ctrl-w|     : Toggle the wrap settings. Helpful if the comments are longer
   |Ctrl-u|     : Move one step up
   |Ctrl-t|     : Go to start
-  |Ctrl-Space| : to mark the revision for diff.
-  |Ctrl-a|     : Affected/Modified files for the revision
+  |Ctrl-Space| : To mark the revision for diff.
+  |Ctrl-a|     : Affected/Modified files for the revision (most useful with dirs)
+  |Ctrl-h|     : SVN Diff :HEAD with selected revision (most useful with dirs)
+  |Ctrl-p|     : SVN Diff :PREV with selected revision (most useful with dirs)
   |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi for now
+  |F5|         : Redraw the buffer
+
+  Global-Options:~
+
+  See help on following options |g:svnj_send_soc_command|, |g:svnj_trunk_url|
+  |g:svnj_branch_url|, |g:svnj_warn_branch_log|, |g:svnj_max_logs|, 
+  |g:svnj_max_diff|, |g:svnj_max_open_files|, |g:svnj_fuzzy_search|
+  |g:svnj_fuzzy_search_result_max|, |g:svnj_signs|, |g:svnj_sticky_on_start|
 
   Examples:~
 
@@ -124,6 +199,16 @@ COMMANDS                                                         *svnj-commands*
 
   + To see the log of file not in buffer
     :SVNLog path/to/file
+
+  + To see all commits from the day the branch was created
+     :SVNLog .
+      -  Look at the status bar for current revision as "@" and
+      branch created revision as "S@"
+      - Can use 2 options to list
+       1. Select the revision shown at S@ and press Ctrl-h
+                 or
+       2. Select the current revision and S@ revision and press Enter
+          This works for directories only
 
   + How to use sticky and Ctrl-q 
     Added Ctrl-q to the files diffed from SVNJWindow. Press Ctrl-q on the diffed
@@ -194,7 +279,83 @@ COMMANDS                                                         *svnj-commands*
     4. BookMarks - Bookmarks with Ctrl-b command. This is persisted only for the
                    current session. To persist the bookmarks across sessions please
                    see help |g:svnj_browse_bookmarks_cache| or |g:svnj_browse_cache_all|
+    5 Buffer - Lists the buffer files
  
+  
+  Key-Mappings:~
+    The following are the operations supported by the Browsing Commands. 
+
+  |Enter|      : If directory, lists all files with in the directory.
+                 If file, opens the file in new buffer
+
+  |Ctrl-Enter| : If directory list files using recursive command
+                 If file, opens the file in buffer
+
+  |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
+
+  |Ctrl-t|     : Go to start
+
+  |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
+                 that will be opened depends on the value specified at
+                 |g:svnj_max_open_files| 
+
+  |Ctrl-v|     : Vertical split
+
+  |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
+
+  |Ctrl-l|     : Opens the log for the file under cursor line.
+                 Once the log is displayed can Navigate back as |Ctrl-u|
+                 All operations supported by |SVNLog| are supported along with 
+                 Ctrl-u  to navigate back
+
+  |Ctrl-i|     : SVN info 
+
+  |Ctrl-space| : Mark the file for open
+
+  |Ctrl-a|     : Affected/Modified files for the revision
+
+  |Ctrl-b|     : Bookmark the dir/file. To persist the bookmarks across sessions please
+                   see help |g:svnj_browse_bookmarks_cache| or |g:svnj_browse_cache_all|
+
+  |Ctrl-e|     : Select/Mark all
+
+  |Ctrl-r|     : Refresh. When caching/persistency is enabled using 
+                 |g:svnj_browse_cache_all| or |g:svnj_browse_repo_cache| the cache will
+                 be cleared and the contents fetched again. The caching is done only if
+                 the recursive listing is used using |Ctrl-Enter| This helps for faster
+                 navigation.  Use |SVNClearCache| to clear all cached info. See also
+                 |g:svnj_cache_dir| 
+
+  |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
+
+
+  |Ctrl-g|     : Add selected/marked as new repo elements (svn add)
+
+  |Ctrl-z|     : Commit selected/marked  (svn ci) 
+
+  |Ctrl-k|     : Checkout
+                 Hint : Use Bookmarks or MyList feature to store the repo root so that
+                 can be browsed when need to checkout.  
+  |Ctrl-p|     :|SVNBrowseRepo| 
+                Pastes the selected urls to new dir location,
+                The paste on repo requires a commit so a buffer will be opened to
+                enter comments for the commit 
+              |SVNBrowseWorkingCopy|
+                 Differs from repo paste, as this does not lead to commit automatically
+                 Only files/directories will be copied to new location. To commit use
+                 SVNStatus and perform commit
+        
+  |Ctrl-h|    : |SVNBrowseRepo| 
+                    Jumps to the root of the repository
+              |SVNBrowseWorkingCopy|
+                    Jumps to the root of the working copy requires new svn version which
+                    supports "Working Copy Root Path" in svn info command output. 
+                    If using an older svn version, will jump to $HOME.
+                    If current dir/browsing at the working copy root itself pressing again
+                    Ctrl-h will jumpt to $HOME
+
+  |Ctrl-q|   : Only in SVNBrowseBuffer| Closes the buffer, calls buffer delete aka :bd 
+
 
 :SVNBrowseRepo [Arguments]                                         *SVNBrowseRepo*
 
@@ -209,35 +370,7 @@ COMMANDS                                                         *svnj-commands*
   "/"         : Will start browsing from the root of the repository
   
   Key-Mappings:~
-  
-  |Enter|      : If directory, lists all files with in the directory.
-                 If file, opens the file in new buffer
-  |Ctrl-Enter| : If directory list files using recursive command
-                 If file, opens the file in buffer
-  |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
-  |Ctrl-t|     : Go to start
-  |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
-                 that will be opened depends on the value specified at
-                 |g:svnj_max_open_files| 
-  |Ctrl-v|     : Vertical split
-  |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
-  |Ctrl-l|     : Opens the log for the file under cursor line.
-                 Once the log is displayed can Navigate back as |Ctrl-u|
-                 All operations supported by |SVNLog| are supported along with 
-                 Ctrl-u  to navigate back
-  |Ctrl-i|     : SVN info 
-  |Ctrl-space| : Mark the file for open
-  |Ctrl-a|     : Affected/Modified files for the revision
-  |Ctrl-b|     : Bookmark the dir/file. To persist the bookmarks across sessions please
-                   see help |g:svnj_browse_bookmarks_cache| or |g:svnj_browse_cache_all|
-  |Ctrl-r|    : Refresh. When caching/persistency is enabled using 
-                |g:svnj_browse_cache_all| or |g:svnj_browse_repo_cache| the cache will
-                be cleared and the contents fetched again. The caching is done only if
-                the recursive listing is used using |Ctrl-Enter| This helps for faster
-                navigation.  Use |SVNClearCache| to clear all cached info. See also
-                |g:svnj_cache_dir| 
- |Ctrl-h|     : Jumps to the root of the repository
- |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
+    Look at |Key-Mappings| defined under |SVNBrowse|
 
 :SVNBrowseWorkingCopy [Arguments]                            *SVNBrowseWorkingCopy*
 
@@ -251,65 +384,15 @@ COMMANDS                                                         *svnj-commands*
                 copy
   
   Key-Mappings:~
+    Look at |Key-Mappings| defined under |SVNBrowse|
   
-  |Enter|      : If directory, lists all files with in the directory.
-                  If file, opens the file in new buffer
-  |Ctrl-Enter| : If directory list files using recursive command
-                 If file, opens the file in buffer
-  |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
-  |Ctrl-t|     : Go to start
-  |Ctrl-v|     : Vertical split
-  |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
-                 that will be opened depends on the value specified at
-                 |g:svnj_max_open_files| 
-  |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
-  |Ctrl-l|     : Opens the log for the file under cursor line.
-                 Once the log is displayed can Navigate back as |Ctrl-u|
-                 All operations supported by |SVNLog| are supported along with 
-                 Ctrl-u  to navigate back
-  |Ctrl-i|     : SVN info 
-  |Ctrl-space| : Mark the file for open
-  |Ctrl-b|     : Bookmark
-  |Ctrl-a|     : Affected/Modified files for the revision
-  |Ctrl-r|     : Recreate cache and refresh list, cache created only if enabled.
-                 Also see |g:svnj_cache_dir| |g:svnj_browse_cache_all|
-                 |g:svnj_browse_cache_max_cnt| |SVNClearCache|
-  |Ctrl-h|     : Jumps to the root of the working copy requires new svn version which 
-                supports "Working Copy Root Path" in svn info command output. 
-                If using an older svn version, will jump to $HOME.
-                If current dir/browsing at the working copy root itself pressing again
-                Ctrl-h will jumpt to $HOME
- |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
-
-
 :SVNBrowseMyList                                                *SVNBrowseMyList*
 
    Browse the svn/local file system from a given target in g:svnj_browse_mylist.
    This can be used as a permanent bookmark holder. 
 
    Key-Mappings:~
-  
-  |Enter|      : If directory, lists all files with in the directory.
-                 If file, opens the file in new buffer
-  |Ctrl-Enter| : If directory list files using recursive command
-                 If file, opens the file in buffer
-  |Ctrl-u|     : Navigate back. NOTE: The Enter works as Navigate forward 
-  |Ctrl-t|     : Go to start
-  |Ctrl-o|     : Opens all files (directories will be ignored). The number of files
-                 that will be opened depends on the value specified at
-                 |g:svnj_max_open_files| 
-  |Ctrl-v|     : Vertical split
-  |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
-  |Ctrl-l|     : Opens the log for the file under cursor line.
-                Once the log is displayed can Navigate back as |Ctrl-u|
-                All operations supported by |SVNLog| are supported along with 
-                Ctrl-u  to navigate back
-  |Ctrl-i|     : SVN info 
-  |Ctrl-space| : Mark the file for open
-  |Ctrl-b|     : Bookmark
-  |Ctrl-a|     : Affected/Modified files for the revision
-  |Ctrl-r|     : Recreate cache and refresh list, cache created only if enabled
-  |Ctrl-s|     : Toggle Sticky avialable only on GUI, not in terminal vi
+    Look at |Key-Mappings| defined under |SVNBrowse|
 
 :SVNBrowseBookMarks                                            *SVNBrowseBookMarks*
     
@@ -321,6 +404,17 @@ COMMANDS                                                         *svnj-commands*
   the caching use the mylist opiton i,e |SVNBrowseMyList| and code in .vimrc the 
   |g:svnj_browse_mylist| with values as mentioned in the description of
   |g:svnj_browse_mylist|
+   
+  Key-Mappings:~
+     Look at |Key-Mappings| defined under |SVNBrowse|
+
+:SVNBrowseBuffer                                               *SVNBrowseBuffer*
+
+  This will list the files in buffer. It has a new op along with other operations
+  supported for Browsing.
+  
+   Key-Mappings:~
+     Look at |Key-Mappings| defined under |SVNBrowse|
 
                                                                   
 SVNClearCache                                                     *SVNClearCache*
@@ -387,10 +481,10 @@ here will help narrow down the file searches during file look ups
   
   The following entries are valid for |g:svnj_branch_url| >
   
-  let g:svnj_branch_url = "svn://127.0.0.1/Root/branches,
-                          \ svn://127.0.0.1/Root/branches/example_branch1,
-                          \ svn://127.0.0.1/Root/branches/example_branch1/dir1,
-                          \ svn://127.0.0.1/Root/branches/example_branch1/dir1/dir2"
+  let g:svnj_branch_url = ["svn://127.0.0.1/Root/branches",
+                          \ "svn://127.0.0.1/Root/branches/example_branch1",
+                          \ "svn://127.0.0.1/Root/branches/example_branch1/dir1",
+                          \ "svn://127.0.0.1/Root/branches/example_branch1/dir1/dir2"]
 <
 
   (NOTE: The "\" at the second, third and fourth line lets vim know that it is a 
@@ -425,30 +519,6 @@ NOTE : 1. The directories should end with a "/"
                              \ /home/user/myfile.txt"
 <
 
-                                                           *'g:svnj_find_files'*
-This option works together with g:svnj_branch_url and g:svnj_trunk_url to list 
-files across branches and trunk . If the directory structure do not match, 
-setting this option to 1 will have svnj look for filenames using svn list on
-the required branch/trunk. Look at |g:svnj_branch_url| to narrow down the search
-path. The files are searched using 
- svn list -R  command.
-Cases where same filename exists in more than one directory user will be prompted 
-to select the correct file from list of files.  
-The default value is 1, to disable code at .vimrc code >
-    let g:svnj_find_files = 0
-<
-
-                                                           *'g:svnj_warn_log'*
-This is used to warn user when |g:svnj_find_files| is enabled (which is a 
-default behavior) and while finding files across branches/trunk the directory
-stucture does not match and svnj tries to find file by recursively listing all
-files from the root of the branch/trunk selected and ends up recieving lots of 
-files. Cases like this where branch directories do not match it is better to list
-directories at |g:svnj_branch_url| just to minimize the traffic between the client
-and server. The warn message can be disabled by coding at .vimrc code >
-    let g:svnj_warn_log = 0
-<
-
                                                    *'g:svnj_warn_branch_log'*
 This option is used to control showing the error messages when the branches
 are not retrieved, The default is 1. In order to disable this set 0
@@ -475,11 +545,13 @@ The default is 10. In order to increase this value to say 12 at .vimrc code >
 
                                                            *'g:svnj_ignore_files'*
 This is used to ignore files for svn status, svn list and svn logs
-Default ignore list is  ['.pyc', '.bin', '.zip', '.egg', '.so', '.rpd', '.git',
-     '.png', '.psd', '.gif', '.jpg', '.ico', '.pdf']
+Default ignore list is  ['\.bin', '\.zip', '\.bz2', '\.tar', '\.gz', 
+                \ '\.egg', '\.pyc', '\.so', '\.git',
+                \ '\.png', '\.gif', '\.jpg', '\.ico', '\.bmp', 
+                \ '\.psd', '\.rpd', '\.pdf']
    
 To ignore files with extension .class, .obj at .vimrc code >
-    let g:svnj_ignore_files = ['.class', '.obj']
+    let g:svnj_ignore_files = ['\.class', '\.obj']
 <
 
                                                            *'g:svnj_fuzzy_search'*
@@ -592,6 +664,14 @@ is not sticky. At vimrc code >
   let g:svnj_sticky_on_start = 1
 <
 
+                                              *'g:svnj_send_soc_command'*
+SVN Log sends a svn log command with --stop-on-copy command to get the 
+revision on which the working copy was created. Those who prefer not to 
+send this command can set the value to 0. The default value is 1. When 0
+the log status bar will not show the 'S@' revision which
+is the revision at which the working copy was created.  At vimrc code >
+  let g:svnj_send_soc_command = 0
+<
 ===============================================================================
 MAPPINGS                                                   *svnj-mappings*
 
@@ -616,6 +696,7 @@ Use this option to allow default mappings. The dafault value for this is 0 >
     map <silent> <leader>br :SVNBrowseRepo<CR>
     map <silent> <leader>bw :SVNBrowseWorkingCopy<CR>
     map <silent> <leader>bb :SVNBrowseBookMarks<CR>
+    map <silent> <leader>bf :SVNBrowseBuffer<CR>
     map <silent> <leader>bm :SVNBrowse<CR>
     map <silent> <leader>q :diffoff! <CR> :q<CR>
 
@@ -685,6 +766,37 @@ Default is Character example at .vimrc code >
 This option is used to color syntax the STICKY bar
 Default is Function. To change example at .vimrc code >
     let g:svnj_custom_sticky_hl = 'Question' 
+<
+                                            *'g:svnj_custom_commit_files_hl'*
+This option is used to color syntax the files listed in the commit log file,
+Default is Directory. To change example at .vimrc code >
+    let g:svnj_custom_commit_files_hl = 'Question' 
+<
+                                            *'g:svnj_custom_commit_header_hl'*
+This option is used to color syntax the commit log header in  commit log file,
+Default is Comment. To change example at .vimrc code >
+    let g:svnj_custom_commit_header_hl = 'Question' 
+<
+================================================================================
+                                                      *svnj-recomended-settings*
+
+RECOMENDED SETTINGS:~
+At .vimrc
+
+Hide operations from status line and use ? for quick glance on supported ops >
+ let g:svnj_custom_statusbar_ops_hide = 1 
+<
+Enable caching, >
+ let g:svnj_browse_cache_all = 1
+<
+For windows this option must be specified along with the cache dir >
+ let g:svnj_cache_dir="C:/Users/user1"
+<
+Specify location of branches, tags for SVNLog >
+ let g:svnj_branch_url = ["svn://127.0.0.1/Path/until/branches", "svn://127.0.0.1/Path/until/tags"]
+<
+Specify location of trunk for SVNLog >
+ let g:svnj_trunk_url = "svn://127.0.0.1/Path/until/trunk";
 <
 ================================================================================
 CHANGELOG                                           *svnj-changelog*
@@ -803,7 +915,7 @@ V0.7~
   FIXED
   + Non revision files not getting open. 
 
-V0.8
+V0.8~
   + NEW:  
        Sticky (Ctrl-s), Browsing(Ctrl-h), Diffed files(Ctrl-q)
        Bookmark files listed in SVNStatus window
@@ -866,5 +978,62 @@ V0.8
   FIXED
   + Bookmark sign is shown while browsing bookmarks list, now its easier to unbook
   + Fixed filename/dirs with spaces/special chars.
+
+0.9~
+  + NEW,
+    SVNAdd (svn add), SVNCommit (svn ci) , Checkout (svn co), Copy (svn copy) and
+    stop-on-copy for svn log, SVNBrowseBuffer
+  
+  + SVNAdd
+    As a command SVNAdd or operation from SVNStatus, SVNBrowse. Provides option to add and commit
+    or just add the elements to repository.
+
+  + SVNCommit 
+     Can execute :SVNCommit , will commit file in buffer or files/dirs passed as
+     arguments
+     + Added commit as operation for SVN Status and SVNBrowse
+       select the required files from SVNStatus | SVNBrowseWorkingCopy | SVNBrowseBuffer
+       output and press Ctrl-z, this will bring up the commit log
+  
+  + SVNBrowseBuffer
+
+  + SVN Log 
+     1. Now shows the --stop-on-copy revision on the status bar as "S@"revision_num
+          This will be the revision number when the working copy was created.
+          Those who prefer not want to see this info can opt to not
+          send this command by setting g:svnj_send_soc_command to 0
+     2. Added Ctrl-h : Brings up svn diff passing :HEAD to selected revision 
+     3. Added Ctrl-p : Brings up svn diff passing :PREV to selected revision 
+
+     Now simplifies the operation of finding all changes to current directory
+
+     At vim execute :SVNLog . 
+     The title now shows the s@ revision
+     Go to the said revision and press Ctrl-h
+
+  + SVN Status has following new ops
+     + Select All
+     + Commit selected
+     + Add selected files to repo
+
+  + SVNBrowse commands has following new ops
+     + Add (svn add)
+     + Commit  (svn ci)
+     + Copy (svn cp)
+     + Checkout (svn co)
+
+  + Added operation to checkout to browse operation (should be a respository browse)
+     Hint : Use bookmarks, mylist feature to store the repository root and then
+     check out from there
+
+  + SVNInfo now takes arguments
+
+  + Added options g:svnj_send_soc_command, g:svnj_custom_commit_files_hl,
+    g:svnj_custom_commit_header_hl
+         
+  + Now providing browser to select file when doing a file diff in SVNLog
+    across branches/trunk when svnj fails to create a proper svn url.
+    Now not using svn list -r command to hunt down the file. 
+
 ================================================================================
 vim:ft=help:et:ts=2:sw=2:sts=2:norl

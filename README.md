@@ -21,22 +21,24 @@ MacOSX/Linux/Windows
 
 ##Supported operations
 
+ **svn add**, **svn commit**, **svn checkout**, **svn cp**,
  **svn log**, **svn status**, **svn diff**, **svn blame**, **svn list**
 
 ##Features
 * <b>SVNBrowse</b>
 
-    Browse the svn repository, working copy files from within vim. Provision to 
+    Browse the svn repository, working copy files from within vim. Options to 
     bookmark files/directories for current vim session or provide permanent 
-    bookmarks/favorites from .vimrc. Ability to open/openall/diff the browsed files.
+    bookmarks/favorites.
     
     Available options for browsing are
     
-        - SVNBrowse
-        - SVNBrowseRepo
-        - SVNBrowseWorkingCopy
-        - SVNBrowseMyList
-        - SVNBrowseBookMarks
+        - SVNBrowse - Provides a menu for the Browsing commands
+        - SVNBrowseRepo  - Lists files from repository
+        - SVNBrowseWorkingCopy - Lists files from current dir
+        - SVNBrowseMyList  - Lists files specifies from g:svnj_browse_mylist
+        - SVNBrowseBookMarks - Lists Bookmarked files/dirs
+        - SVNBrowseBuffer - List Buffer files
 
     Some of the operations supported are
     
@@ -45,45 +47,74 @@ MacOSX/Linux/Windows
         - Navigate up one dir
         - Go to Start/Top
         - Open all files
-        - Display log of a file/dir
         - Diff the current file with the file in buffer
         - Mark for open/diff
-        - Bookmark file for current session
+        - Bookmark file/dir
+        - SVN Add
+        - SVN Commit
+        - SVN Checkout 
+        - SVN Log
     
 * <b>SVNLog</b>
 
 	Get the revisions of file in buffer. With the list of revisions from the output.
     
-     - open/diff required file revision 
-     - mark required revision to open/diff
-     - list trunk
-     - list branches
-     - diff/open files across branches/trunk
-
+     - Open/diff required file revision (new buffer, vertical split)
+     - Mark required revision to open/diff
+     - List trunk
+     - List branches
+     - Diff/open files across branches/trunk
+     - List affected files 
+     - SVN Diff with options :HEAD or :PREV
+     - SVN Info
 
 *  <b>SVNStatus</b>
 
 	Get the output of svn st. With the listed files
 	
-       - open any/all files
-       - mark required files to open
-       - pass q/u option to svn st
-       - global option to ignore files
+       - Open any/all files
+       - Mark required files to open
+       - Pass q/u option to svn st
+       - Global option to ignore files
+       - Diff files
+       - SVN Info
+       - SVN Add
+       - SVN Commit
 
-* <b>SVNComitts</b>
+
+* <b>SVNCommit</b>
+
+     Commits the current file in buffer when no arguments are passed, Applicable arguments are 
+     file/directory to commit. A new buffer will be opened to accept commit comments. The
+     buffer will list the files which are candidates for commit. Files/Directories can also be
+     updated in this buffer. A commit can be forced with no comments with a bang.
+     SVNCommit is supported as a command and also as an operation from the SVNStatus output 
+     window. see :help SVNStatus
+     
+* <b>SVNBlame</b>
+     
+     Vertically splits the blame info for the file in bufffer. Scrollbinds to the file.
+     Takes files as arguments
+
+* <b>SVNDiff</b>
+
+    Immediate diff the file in buffer with the previous revision. For diff with required/any
+    revision use SVNLog. If there are more than one file in buffer Ctrl-n/Ctrl-p will
+    close the current diff and move to the next/prev file in buffer and opens a diff for
+    the said file
+
+* <b>SVNClearCache</b>
+     
+    The cache / persistency is not enabled by default. please see help SVNClearCache for more info.
+
+* <b>SVNInfo</b>
+     
+    Will display svn info for the file in buffer when no args, Accepts file/dirs as args
+
+* <b>SVNCommits</b>
 
        Get the list of files checked in across project revision. This command lists the output of svn log of the project directory.  
      
-     - list HEAD/PREV
-     - mark revisions for comparing across marked revisions 
-     - open any/all/marked files listed
-     
-     
-* <b>SVNDiff</b>
-
-      Immediate diff the file in buffer with the previous revision.<br/>
-      For diff with selected revision use SVNLog
-
 
 ##Installation
 
@@ -108,25 +139,49 @@ Run from vim commandline
 2. `:SVNDiff`
 3. `:SVNLog`
 4. `:SVNStatus`
-5. `:SVNCommits`
-6. `:SVNList`
-7. `:SVNListRec`
-7. **`:help svn`**
+5. `:SVNCommit`
+6. `:SVNCommits`
+7. `:SVNAdd`
+8. `:SVNBrowse`
+9. `:SVNBrowseWorkingCopy`
+10. `:SVNBrowseRepo`
+11. `:SVNBrowseBookMarks`
+12. `:SVNBrowseMyList`
+12. `:SVNBrowseBuffer`
+13. **`:help svn`**
 
 ##Settings .vimrc 
 
+####Custom settings
+
+    `let g:svnj_custom_statusbar_ops_hide = 1`
+    
+    Supported operations are listed on the status line of the svnj_window. With growing support for
+    many commands, recomend to hide it. You can still have a quick glance of supported operations by
+    pressing ? (question-mark)
+
+####Cache settings
+
+    `let g:svnj_browse_cache_all = 1`
+
+    This enables caching, Listing of files will be faster, On MAC/Unix the default location is $HOME/.cache.
+    A new directory svnj will be created in the specified directory.
+
+    For windows this option must be specified along with the cache dir
+        `let g:svnj_cache_dir="C:/Users/user1"`
+
 ####To list all branches or trunk
 
-    Optional settings when available will provide menu's to navigate available
-    branches/trunk
+   Optional settings when available will provide menu's to navigate available branches/trunk
 
-1. At .vimrc add  `let g:svnj_branch_url = svn://127.0.0.1/Path/until/trunk`
-2. At .vimrc add  `let g:svnj_branch_url = svn://127.0.0.1/Path/until/branches`
+   `let g:svnj_branch_url = ["svn://127.0.0.1/Path/until/branches/", "svn://127.0.0.1/Path/until/tags"]`
+
+   `let g:svnj_trunk_url = "svn://127.0.0.1/Path/until/trunk"`
 
    For more info run `:help svnj-options`
 
 ####To allow default mappings
-1. At .vimrc addd  `let g:svnj_allow_leader_mappings=1`
+1. `let g:svnj_allow_leader_mappings=1`
 
     For more info run at command line `:help svnj-mappings`
     
