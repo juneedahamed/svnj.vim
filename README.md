@@ -2,6 +2,8 @@
 VIM (VIM 7 and up) plugin for subversion (svn)
 Support for browsing the repository, working copy, bookmarks.
 
+Also at vim.org : http://www.vim.org/scripts/script.php?script_id=4888
+
 ##Screen shots
 
 ![svnbrowse][1]
@@ -16,8 +18,6 @@ Support for browsing the repository, working copy, bookmarks.
 
 ![svnlogbranches][6]
 
-##Supported OS
-MacOSX/Linux/Windows
 
 ##Supported operations
 
