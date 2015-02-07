@@ -1,5 +1,5 @@
 " =============================================================================
-" File:         autoload/svnj.vim
+" File:         autoload/dict.vim
 " Description:  The main dict used to populate contents
 " Author:       Juneed Ahamed
 " =============================================================================

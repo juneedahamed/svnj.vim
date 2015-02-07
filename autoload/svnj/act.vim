@@ -11,7 +11,8 @@ fun! svnj#act#blame(svnurl, filepath)
     setlocal scrollbind nowrap nofoldenable 
     call winj#close()
     let filetype=&ft
-    let cmd="%!svn blame " . fnameescape(a:filepath)
+    let cmd="svn blame " . fnameescape(a:filepath)
+    let cmd="%!" . svnj#svn#fmt_auth_info(cmd)
     let newfile = 'keepalt vnew '
     exec newfile | exec cmd
     exe "setl bt=nofile bh=wipe nobl noswf nowrap ro ft=" . filetype
@@ -19,26 +20,58 @@ fun! svnj#act#blame(svnurl, filepath)
     retu svnj#passed()
 endf
 
-fun! svnj#act#diff(revision, svnurl)
+"fun! svnj#act#diff(revision, svnurl, force)
+fun! svnj#act#diff(...)
+    let arevision = a:1
+    let asvnurl = a:2
+    let aforce = len(a:000) > 2 ? a:3 : "noforce"
+
     call s:startOp()
     let filetype=&ft
-    let revision = len(a:revision) > 0 ? " -" . a:revision : ""
-    if a:revision == "" && filereadable(svnj#utils#expand(fnameescape(a:svnurl)))
-        let cmd = "%!cat " . fnameescape(a:svnurl)
-        let fname =  svnj#utils#strip(a:svnurl)
+    let revision = len(arevision) > 0 ? " -" . arevision : ""
+    if arevision == "" && filereadable(svnj#utils#expand(fnameescape(asvnurl)))
+        let cmd = "%!cat " . fnameescape(asvnurl)
+        let fname =  svnj#utils#strip(asvnurl)
     else
-        let cmd = "%!svn cat " . revision . ' '. fnameescape(a:svnurl)
-        let fname =  svnj#utils#strip(a:revision)."_".svnj#utils#strip(a:svnurl)
+        let cmd = "svn cat " . revision . ' '. fnameescape(asvnurl)
+        let cmd = "%!". svnj#svn#fmt_auth_info(cmd)
+        let fname =  svnj#utils#strip(arevision)."_".svnj#utils#strip(asvnurl)
     endif
+
     diffthis | exec 'vnew! ' fnameescape(fname) 
     exec cmd |  diffthis
+    
     exe 'silent! com! GoSVNJ call svnj#home()'
     exe 'map <buffer> <silent> <c-q>' '<esc>:diffoff!<cr>:bd!<cr>:GoSVNJ<cr>'
-    exe 'map <buffer> <silent> <c-n>' '<esc>:diffoff!<cr>:bd!<cr>:bn<cr>:SVNDiff<cr>:call winj#close()<cr>'
-    exe 'map <buffer> <silent> <c-p>' '<esc>:diffoff!<cr>:bd!<cr>:bp<cr>:SVNDiff<cr>:call winj#close()<cr>'
+    let ops = "C-q:Quit"
+
+    exe 'map <buffer> <silent> <c-n>' printf("<esc>:diffoff!<cr>:bd!<cr>:bn<cr>:SVNDiff%s <cr>:call winj#close()<cr>", aforce ==? "force" ? "!" : "")
+    exe 'map <buffer> <silent> <c-p>' printf("<esc>:diffoff!<cr>:bd!<cr>:bp<cr>:SVNDiff%s <cr>:call winj#close()<cr>", aforce ==? "force" ? "!" : "")
+
+    let ops = ops . " C-n:nBuf C-p:pBuf"
     exe "setl bt=nofile bh=wipe nobl noswf ro ft=" . filetype
-    let &l:stl = svnj#utils#stl(fname, "C-q:Quit C-n:NextBuffer C-p:PrevBuffer")
-    retu s:endOp(0)
+
+    let [newrev, olderrev] = svnj#svn#oldandnewrevisions(arevision, asvnurl)
+    if olderrev != ""
+        exe 'com! -buffer SVNDiffOld' printf("call winj#close()|diffoff!|bd!|call svnj#act#diff('%s','%s','%s')", olderrev, asvnurl, aforce)
+        exe 'map <buffer> <silent> <c-down> <esc> :SVNDiffOld<cr>'
+        let ops = ops . " C-down:" . olderrev
+    endif
+    if newrev != ""
+        exe 'command! -buffer SVNDiffNew' printf("call winj#close()|diffoff!|bd!|call svnj#act#diff('%s','%s','%s')", newrev, asvnurl, aforce)
+        exe 'map <buffer> <silent> <c-up> <esc> :SVNDiffNew<cr>'
+        let ops = ops . " C-up:". newrev
+    endif
+
+    if arevision != ""
+        exe 'map <buffer> <silent> <c-i>' printf("<esc>:call svnj#gopshdlr#displayinfo('%s', '%s')<cr>", arevision, asvnurl)
+        let ops = ops . " C-i:Info"
+    endif
+
+    let &l:stl = svnj#utils#stl(fname, ops)
+    let result = s:endOp(0)
+    let &l:stl = svnj#utils#stl(fname, ops)
+    return result
 endf
 
 fun! svnj#act#efile(revision, url)
@@ -48,7 +81,8 @@ fun! svnj#act#efile(revision, url)
         if filereadable(svnj#utils#expand(fname))
             silent! exe 'e ' fnameescape(fname)
         else
-            let cmd="%!svn cat " . revision . ' ' . fnameescape(a:url)
+            let cmd="svn cat " . revision . ' ' . fnameescape(a:url)
+            let cmd="%!" . svnj#svn#fmt_auth_info(cmd)
             silent! exe 'e ' fnameescape(fname) | exe cmd 
             exe "setl bt=nofile"
         endif
@@ -62,7 +96,8 @@ fun! svnj#act#vs(revision, url)
     if filereadable(svnj#utils#expand(fname))
         silent! exe 'vsplit ' fnameescape(fname)
     else
-        let cmd="%!svn cat " . revision . ' ' . fnameescape(a:url)
+        let cmd="svn cat " . revision . ' ' . fnameescape(a:url)
+        let cmd="%!" . svnj#svn#fmt_auth_info(cmd)
         silent! exe 'vsplit ' fnameescape(fname) | exe cmd 
         exe "setl bt=nofile"
     endif
@@ -101,20 +136,9 @@ endf
 fun! s:startOp()
     if svnj#prompt#isploop() 
         call winj#close()
-        if exists('g:svnj_a_winnr')
-            try
-                silent! exe  g:svnj_a_winnr . 'wincmd w'
-            catch | endtry
-        endif
         retu svnj#passed()
     endif
-    let [athome, jwinnr] = svnj#home()
-    if !athome | retu 0 | en
-    let curwin = winnr()
-    if curwin == jwinnr
-        let altwin = winnr('#')
-        silent! exe  altwin . 'wincmd w'
-    endif
+    call svnj#altwinnr()
     retu svnj#passed()
 endf
 
@@ -125,12 +149,6 @@ fun! s:endOp(keep)
         call svnj#syntax#highlight()
         call winj#stl()
         setl nomodifiable | redr!
-        try
-            if !a:keep
-                let altwin = winnr('#')
-                silent! exe  altwin . 'wincmd w'
-            endif
-        catch | call svnj#utils#dbgMsg("s:endOp " . v:exception) | endt
     elseif athome && svnj#prompt#isploop()
         call winj#close()
     endif

@@ -264,10 +264,21 @@ fun! svnj#brwsr#digout(argdict)
         endif
         let args = {'url' : newurl, 'purl': adict.bparent, 'igndirs' : 0,
                     \ 'recursive' : adict.brecursive, 'populatecb' : 'winj#populate'}
-        retu svnj#brwsr#browseIt(args)
+        let result = svnj#brwsr#browseIt(args)
+        call s:findAndSetCursor(adict.bparent, newurl)
+        retu result
     catch | call svnj#utils#dbgMsg("Exception at digout", v:exception)
     endtry
     retu svnj#failed()
+endf
+
+fun! s:findAndSetCursor(subdir, topdir)
+    try
+        let displayed_dir = substitute(a:subdir, a:topdir, "", "")
+        let pattern = '\v\c:' . displayed_dir
+        let matchedat = match(getline(1, "$"), pattern)
+        if matchedat >= 0 | call cursor(matchedat + 1, 0) | en
+    catch | call svnj#utils#dbgMsg("At findAndSetCursor", v:exception) | endt
 endf
 
 fun! svnj#brwsr#fileLogs(argdict)
@@ -524,6 +535,7 @@ fun! svnj#brwsr#brwsBuffer(populateCb, curbufname)
             call remove(ops, "\<C-u>")
             call remove(ops, "\<C-r>")
             call remove(ops, "\<Enter>")
+            call remove(ops, "\<C-s>")
 
             call extend(ops, {"\<Enter>"  : {"bop":"<enter>", "dscr":'Ent:Opn', "fn":'svnj#brwsr#digin', "args":[0, 1]},})
             call extend(ops, {"\<C-r>"  : {"bop":"<c-r>", "dscr":'C-r:Refresh', "fn":'svnj#brwsr#browseBufferMenuCb', "args":[]},})
@@ -533,6 +545,7 @@ fun! svnj#brwsr#brwsBuffer(populateCb, curbufname)
             call svnj#dict#addBrowseEntries(bdict, 'browsed', entries, ops)
         endif
         call call(a:populateCb, [bdict])
+        call svnj#gopshdlr#removeSticky()
         unlet! bdict
     catch | call svnj#utils#dbgMsg("At svnj#brwsr#brwsMyList", v:exception) 
     endtry

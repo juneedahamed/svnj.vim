@@ -8,6 +8,7 @@
 
 "vars {{{2
 let s:svnj_stack = []
+let s:svnj_nav_line = ""
 "2}}}
 
 "functions {{{2
@@ -27,16 +28,28 @@ fun! svnj#stack#push(...)
     let elems = []
     if a:0 >= 1 | call add(elems, a:1) | en
     if a:0 >=2 && type(a:2) == type([]) | call extend(elems, a:2) | en
+    let s:svnj_nav_line = getline(".")
     call add(s:svnj_stack, elems)
 endf
 
 fun! svnj#stack#pop(...)
     try
+        let movetoline = s:svnj_nav_line
         let callnow = s:svnj_stack[len(s:svnj_stack)-2]
         let s:svnj_stack = s:svnj_stack[:-3]
         call call(callnow[0], callnow[1:])
+        call s:findAndSetCursor(movetoline)
      catch | call svnj#utils#dbgMsg("At pop", v:exception) | endt
     retu svnj#passed()
+endf
+
+fun! s:findAndSetCursor(movetoline)
+    try
+        if len(a:movetoline) > 0
+            let [linenum, line] = svnj#utils#extractkey(a:movetoline)
+            if a:movetoline ==# getline(linenum) | call cursor(linenum, 0) | en
+        endif
+    catch | call svnj#utils#dbgMsg("At findAndSetCursor", v:exception) | endt
 endf
 
 fun! svnj#stack#top(...)

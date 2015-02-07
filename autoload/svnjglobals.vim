@@ -7,6 +7,7 @@
 "global vars {{{2
 "start init {{{3
 fun! svnjglobals#init()
+    try| call s:auth() | catch | endt
     try| call s:custom() | catch | endt
     try| call s:customize() | catch | endt
     try| call s:cache() | catch | endt
@@ -24,9 +25,19 @@ fun! svnjglobals#init()
 endf
 "3}}}
 
+"auth info {{{3
+fun! s:auth()
+    let g:svnj_username = get(g:, 'svnj_username', "") 
+    let g:svnj_password = get(g:, 'svnj_password', "") 
+    let g:svnj_auth_errno = get(g:, 'svnj_auth_errno', "E170001") 
+    let g:svnj_auth_errmsg = get(g:, 'svnj_auth_errmsg', '\cusername\|\cpassword') 
+    let g:svnj_auth_disable = get(g:, 'svnj_auth_disable', 0) 
+endf
+"3}}}
+
 "custom gvars {{{3
 fun! s:custom()
-    let g:svnj_max_logs = get(g:, 'svnj_max_logs', 10)
+    let g:svnj_max_logs = get(g:, 'svnj_max_logs', 50)
     let g:svnj_max_open_files = get(g:, 'svnj_max_open_files', 10)
     let g:svnj_max_diff = get(g:, 'svnj_max_diff', 2)
     let g:svnj_max_buf_lines = get(g:, 'svnj_max_buf_lines', 80)
@@ -56,7 +67,7 @@ fun! s:customize()
     let g:svnj_custom_statusbar_title = '%#' . g:svnj_custom_statusbar_title .'#'
     let g:svnj_custom_statusbar_ops_hl = s:get_hl('g:svnj_custom_statusbar_ops_hl', 'Search')
     let g:svnj_custom_statusbar_sel_hl = s:get_hl('g:svnj_custom_statusbar_sel_hl', 'Question')
-    let g:svnj_custom_statusbar_ops_hide = get(g:, 'svnj_custom_statusbar_ops_hide', 0)
+    let g:svnj_custom_statusbar_ops_hide = get(g:, 'svnj_custom_statusbar_ops_hide', 1)
     let g:svnj_custom_sticky_hl = s:get_hl('g:svnj_custom_sticky_hl', 'Function')
     let g:svnj_custom_commit_files_hl = s:get_hl('g:svnj_custom_commit_files_hl', 'Directory')
     let g:svnj_custom_commit_header_hl = s:get_hl('g:svnj_custom_commit_header_hl', 'Comment')
@@ -104,6 +115,7 @@ fun! s:cache()
                 \ (g:svnj_browse_workingcopy_cache || g:svnj_browse_cache_all)
     let g:svnj_browse_bookmarks_cache = isdir &&
                 \ (g:svnj_browse_bookmarks_cache || g:svnj_browse_cache_all)
+    let g:svnj_logversions = []
 endf
 "3}}}
 

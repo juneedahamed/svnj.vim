@@ -27,7 +27,7 @@ fun! svnj#utils#getSVNJSyn()
 endf
 "2}}}
 
-fun! svnj#utils#stl(title, ops)
+fun! svnj#utils#stl(title, ops) "{{{
     let [s:winjhi, s:svnjhl] = [g:svnj_custom_statusbar_title, g:svnj_custom_statusbar_hl]
     let title = s:winjhi . a:title
     let alignright = '%='
@@ -35,6 +35,7 @@ fun! svnj#utils#stl(title, ops)
     let ops = opshl.a:ops
     retu title.alignright.opshl.ops
 endf
+"2}}}
 
 fun! svnj#utils#keysCurBuffLines() "{{{2
     let keys = []
@@ -213,6 +214,15 @@ fun! svnj#utils#sortftime(f1, f2) "{{{2
 endf
 "2}}}
 
+fun! svnj#utils#showErrJWindow(title, exception) "{{{2
+    let edict = svnj#dict#new(a:title)
+    call svnj#dict#addErr(edict, 'Failed ', a:exception)
+    call winj#populateJWindow(edict)
+    call edict.clear()
+    unlet! edict
+endf
+"2}}}
+
 fun! svnj#utils#showerr(msg) "{{{2
     echohl Error | echo a:msg | echohl None
     let ign = input('Press Enter to coninue :')
@@ -253,9 +263,22 @@ endf
 "2}}}
 
 fun! svnj#utils#execShellCmd(cmd) "{{{2 
-    let shellout = system(a:cmd)
-    if v:shell_error != 0
-        throw 'FAILED CMD: ' . shellout
+    let [cmd, status] = [a:cmd, svnj#failed()]
+
+    if !g:svnj_auth_disable && strlen(g:svnj_username) > 0 && 
+                \ strlen(g:svnj_password) > 0 && svnj#svn#is_cmd(a:cmd) 
+        let cmd = svnj#svn#fmt_auth_info(cmd) 
+    endif
+
+    let shellout = system(cmd)
+    if v:shell_error != 0 
+        if !g:svnj_auth_disable && svnj#svn#is_auth_err(shellout) 
+            let [status, shellout] = svnj#svn#exec_with_auth(cmd)
+        endif
+
+        if status == svnj#failed() 
+            throw 'FAILED CMD: ' . shellout 
+        endif
     endif
     retu shellout
 endf
@@ -284,12 +307,19 @@ fun! svnj#utils#input(title, description, prompt) "{{{2
 endf
 "2}}}
 
+fun! svnj#utils#inputsecret(title, prompt) "{{{2
+    echohl Title | echo "" | echo a:title | echohl None
+    let secret = inputsecret(a:prompt)
+    redr | retu secret
+endf
+"2}}}
+
 fun! svnj#utils#getchar() "{{{2
     let chr = getchar()
     retu !type(chr) ? nr2char(chr) : chr
 endf
 "2}}}
-"
+
 fun! svnj#utils#inputchoice(msg) "{{{2
     echohl Question | echon a:msg . " : " | echohl None 
     let choice = input("")

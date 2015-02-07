@@ -10,17 +10,24 @@ let s:endnow = 0
 "2}}}
 
 "SVNDiff {{{2
-fun! svnj#SVNDiff()
+fun! svnj#SVNDiff(bang, ...)
     try
         call svnj#init()
+        let [force, diffwith] = ["noforce", ""]
         let url = svnj#svn#url(svnj#utils#bufFileAbsPath())
-        call svnj#act#diff('', url)
+        let lcr = "r". svnj#svn#lastChngdRev(url)
+        call svnj#svn#logs(g:svnj_max_logs, url)
+        let diffwith = lcr
+        if a:bang == "!"
+            let diffwith = len(g:svnj_logversions) > 0 ? g:svnj_logversions[0] : ''
+            if diffwith == lcr && len(g:svnj_logversions) > 1
+                let diffwith = g:svnj_logversions[1]
+                let force = "force"
+            endif 
+        endif
+        call svnj#act#diff(diffwith, url, force)
     catch
-        let edict = svnj#dict#new("SVNDiff")
-        call svnj#dict#addErr(edict, 'Failed ', v:exception)
-        call winj#populateJWindow(edict)
-        call edict.clear()
-        unlet! edict
+        call svnj#utils#showErrJWindow("SVNDiff", v:exception)
     endtry
 endf
 "2}}}
@@ -31,11 +38,7 @@ fun! svnj#SVNBlame()
         call svnj#init()
         call svnj#act#blame('', svnj#utils#bufFileAbsPath())
     catch
-        let edict = svnj#dict#new("SVNBlame")
-        call svnj#dict#addErr(edict, 'Failed ', v:exception)
-        call winj#populateJWindow(edict)
-        call edict.clear()
-        unlet! edict
+        call svnj#utils#showErrJWindow("SVNBlame", v:exception)
     endtry
 endf
 "2}}}
@@ -55,21 +58,17 @@ fun! svnj#SVNInfo(...)
         endif
         call svnj#utils#showConsoleMsg(svnj#svn#info(target), 0)
     catch
-        let edict = svnj#dict#new("SVNInfo")
-        call svnj#dict#addErr(edict, 'Failed ', v:exception)
-        call winj#populateJWindow(edict)
-        call edict.clear()
-        unlet! edict
+        call svnj#utils#showErrJWindow("SVNInfo", v:exception)
     endtry
 endf
 "2}}}
 
 fun! svnj#home() "{{{2
-    let [atHome, jwinnr] = [0, bufwinnr('svnj_window')]
-    if jwinnr > 0
-        silent! exe  jwinnr . 'wincmd w'
-        let atHome = 1
+    let [athome, curwinnr, jwinnr] = [ 0, winnr(), bufwinnr('svnj_window')]
+    if jwinnr > 0 && curwinnr != jwinnr
+        silent! exe jwinnr . 'wincmd w'
     endif
+    let atHome = jwinnr > 0 ? 1 : 0
     retu [atHome, jwinnr]
 endf
 "2}}}
@@ -91,10 +90,21 @@ fun! svnj#prepexit()
 endf
 
 fun! svnj#init()
-    let g:svnj_a_winnr = winnr()
+    let g:svnj_logversions = []
     call svnj#stack#clear()
     call svnj#select#clear()
     let s:endnow = 0
+endf
+
+fun! svnj#altwinnr()
+    let altwin = winnr('#')
+    let jwinnr = bufwinnr('svnj_window')
+    let curwin = winnr()
+    try
+        if jwinnr > 0 && altwin > 0 && curwin != altwin && jwinnr != altwin
+            silent! exe  altwin . 'wincmd w'
+        endif
+    catch | endtry
 endf
 "2}}}
 

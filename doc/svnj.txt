@@ -2,13 +2,14 @@
 *svnj* *SVN*
 
 ================================================================================
-CONTENTS                                                        *svnj-contents*
-    1. INTRO.....................................................|svnj-intro|
-    2. COMMANDS..................................................|svnj-commands|
-    3. OPTIONS...................................................|svnj-options|
-    4. MAPPINGS..................................................|svnj-mappings|
-    5. CUSTOMIZE.................................................|svnj-customize|
-    6. RECOMENDED Settings.............................|svnj-recomended-settings|
+CONTENTS                                             *svnj-contents*
+    1. INTRO..........................................|svnj-intro|
+    2. COMMANDS.......................................|svnj-commands|
+    3. AUTHENTICATION.................................|svnj-authentication|
+    4. OPTIONS........................................|svnj-options|
+    5. MAPPINGS.......................................|svnj-mappings|
+    6. CUSTOMIZE......................................|svnj-customize|
+    7. RECOMENDED Settings............................|svnj-recomended-settings|
 ================================================================================
 
 INTRO                                                              *svnj-intro*
@@ -33,7 +34,7 @@ Plugin for subversion, supported operations are
 ================================================================================
 COMMANDS                                                         *svnj-commands*
 
-:SVNCommit [Arguments]                                              *SVNCommit*
+:SVNCommit[!] [Arguments]                                         *SVNCommit*
  
   Commits the file in buffer to repo. The other option to commit is using 
   SVNStatus command. Ctrl-z will commit the selected files from status output.
@@ -83,7 +84,7 @@ COMMANDS                                                         *svnj-commands*
    <file/dir> : SVN Info of the passed file/dir
     .         : SVN Info of current dir
 
-:SVNDiff                                                             *SVNDiff*
+:SVNDiff[!]                                                          *SVNDiff*
 
   VimDiff the current file in buffer. For diff with other revisions
   use :SVNLog and then select the required revision to diff. See SVNLog for
@@ -91,6 +92,25 @@ COMMANDS                                                         *svnj-commands*
   diff with the browsed file.
   If there are more than one file in buffer Ctrl-n/Ctrl-p will close the current
   diff and moves to the next/prev file in buffer and opens a diff for the said file
+
+  Arguments:~
+    !   : forces diff to start with a next revision number
+
+  Key-Mappings:~
+  When at diff mode, following are enabled
+  |Ctrl-i|    : Brings up svn info 
+  |Ctrl-q|    : Quits diff mode
+  |Ctrl-n|    : Closes diff of the current buffer and diffs the next buffer
+  |Ctrl-p|    : Closes diff of the current buffer and diffs the prev buffer
+
+  |Ctrl-up|   : Closes diff of the current buffer and diffs the next buffer
+  :SVNDiffNew : Closes diff of the current buffer and diffs the next buffer
+
+  |Ctrl-down| : Closes diff of the current buffer and diffs the prev buffer
+  :SVNDiffOld : Closes diff of the current buffer and diffs the prev buffer 
+                (for MAC users as Ctrl-up | Ctrl-down is default key map for
+                 launching mission control, so can use 
+                  :SVNDiffOld and :SVNDiffNew instead)
 
 
 :SVNStatus [Arguments]                                             *SVNStatus* 
@@ -302,6 +322,7 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-v|     : Vertical split
 
   |Ctrl-d|     : Opens the marked/selected file in diff mode with the file in buffer
+                 See SVNDiff for diff mode key-mappings |SVNDiff|
 
   |Ctrl-l|     : Opens the log for the file under cursor line.
                  Once the log is displayed can Navigate back as |Ctrl-u|
@@ -437,11 +458,59 @@ Example at .vimrc >
 <
 
 ================================================================================
+AUTHENTICATION                                              *svnj-authentication*
+
+Description:~
+
+When username/passwords are stored locally and not provided for the commands 
+against SVN then no need to set any info for SVNJ. However cases where the 
+username/passwords are chosen not to be stored locally and you have been providing
+the authentication with the required commands then the username/password will be 
+required for commands (example  svn log, commit etc.,)
+
+SVNJ supports SVN authentications to be supplied by either the settings or when an
+command fails due to authentication error.
+
+Providing the info from settings (.vimrc) requires that the username/password in
+plain text, If this is not desired SVNJ will prompt for the username/password 
+when a commands fails with authentication error. The username/password provided
+will be cached locally and will be available only for the current vim session 
+(i,e new vim window will request auth again when a command fails authentication)
+
+The following are the settings available
+
+
+                                                        *'g:svnj_username'*
+This option is used to store the svn username example at .vimrc code >
+    let g:svnj_username="user1"
+<
+
+                                                         *'g:svnj_password'*
+This option is used to store the svn password example at .vimrc code >
+    let g:svnj_password="passwordforuser1"
+<
+
+                                                     *'g:svnj_auth_disable'*
+This option is used to disable the feature. SVNJ will not prompt for username
+and password even if the command fails authentication, The default is 0.
+i,e the feature is enabled to disable this feature at .vimrc code >
+
+    let g:svnj_auth_disable=1
+<
+
+                                                         *'g:svnj_auth_errno'*
+                                                         *'g:svnj_auth_errmsg'*
+This option is used to identify that the authentication is required to prompt
+for username and password when not provided. The default value is E170001. 
+Donot change unless required or a new error code from svn is available,
+svnj_auth_errmsg default is '\cusername\|\cpassword'
+
+                    
+================================================================================
 OPTIONS                                                     *svnj-options*
 
 Description:~
 
-                                                           *'g:svnj_trunk_url'*
 This variable along with |g:svnj_branch_url| are used to retrieve the files from 
 branches and trunk for |SVNLog| command. If these option are set to proper values
 svnj shall be able to display files from the trunk and other branches. Helpful to
@@ -527,9 +596,9 @@ To change example at .vimrc code >
 <
 
                                                            *'g:svnj_max_logs'*
-This is used as a count of logs retrieved per revision. The default is 10
-In order to increase this value to say 20 at .vimrc >
-    let g:svnj_max_logs = 20
+This is used as a count of logs retrieved per revision. The default is 50
+In order to increase this value to say 100 at .vimrc >
+    let g:svnj_max_logs = 100
 <
 
                                                            *'g:svnj_max_diff'*
@@ -672,6 +741,12 @@ the log status bar will not show the 'S@' revision which
 is the revision at which the working copy was created.  At vimrc code >
   let g:svnj_send_soc_command = 0
 <
+
+                                            'g:svnj_username'
+                                            'g:svnj_password'
+                                            'g:svnj_auth_err'
+Please refer to |svnj-authentication|
+
 ===============================================================================
 MAPPINGS                                                   *svnj-mappings*
 
@@ -751,10 +826,11 @@ example at .vimrc code >
 
                                             *'g:svnj_custom_statusbar_ops_hide'*
 This option is used to show/hide the supported operations on the statusline. 
-The default is 1, which shows the supported operations and keys.
-On setting this option to 0 i,e disable this, a "?" will act as a quick glance
-at supported opetations display. To use quick glance at .vimrc code >
-    let g:svnj_custom_statusbar_ops_hide = 1
+The default is 1, which hides the supported operations and keys. Type ? to 
+quick glance the supported operations. On setting this option to 1 all 
+supported operations will be displayed on status line. 
+To unhide.vimrc code >
+    let g:svnj_custom_statusbar_ops_hide = 0
 <
 
                                             *'g:svnj_custom_statusbar_sel_hl'*
@@ -782,10 +858,6 @@ Default is Comment. To change example at .vimrc code >
 
 RECOMENDED SETTINGS:~
 At .vimrc
-
-Hide operations from status line and use ? for quick glance on supported ops >
- let g:svnj_custom_statusbar_ops_hide = 1 
-<
 Enable caching, >
  let g:svnj_browse_cache_all = 1
 <
@@ -1035,5 +1107,23 @@ V0.8~
     across branches/trunk when svnj fails to create a proper svn url.
     Now not using svn list -r command to hunt down the file. 
 
+1.0 ~
+
+ + Added ! option for SVNDiff
+ + Added Ctrl Up Arrow and Ctrl Down Arrow in diff window to diff with old, new 
+      revisions of the file
+ + Added authentication support, please refer to :help svnj-authentication
+ + Now the cursor remembers the last selection in SVNLog
+    Example SVNLog <dir>
+    outputs is svn log of <dir>, then use Ctrl-a to see affected files. In the affected files
+    window to go back press Ctrl-u, The window displays the last window with the
+    last visted log
+ + Now the cursor is placed on the directory when navigating upwards during browse ops
+ + Bug fixes
+     Now remembers the previous window and the cursor is place in the correct
+     window when the svnj window is closed
+
+ +Changed setting g:svnj_custom_statusbar_ops_hide = 1 as default
+ +Changed settings g:svnj_max_logs = 50 as default
 ================================================================================
 vim:ft=help:et:ts=2:sw=2:sts=2:norl

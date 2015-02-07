@@ -5,6 +5,55 @@
 "===============================================================================
 
 "SVN command parsers {{{1
+fun! svnj#svn#is_cmd(cmd) "{{{2
+    return len(matchstr(a:cmd, "^svn ")) > 3
+endf
+"2}}}
+
+fun! svnj#svn#is_auth_err(response) "{{{2
+    return matchstr(a:response, g:svnj_auth_errno) == g:svnj_auth_errno || 
+                \ match(a:response, g:svnj_auth_errmsg) > 0 
+endf
+"2}}}
+
+fun! svnj#svn#fmt_auth_info(cmd) "{{{2
+    if g:svnj_auth_disable | retu a:cmd | en
+
+    if len(g:svnj_username) == 0 || len(g:svnj_password) == 0
+        let shellout = system(a:cmd)
+        if v:shell_error != 0 && svnj#svn#is_auth_err(shellout)
+            let [status, shellout] = svnj#svn#exec_with_auth(a:cmd)
+        else
+            retu a:cmd
+        endif
+        if status == svnj#failed() | retu a:cmd | en
+    endif
+        let repstr = "svn --username=". g:svnj_username . " --password=" . g:svnj_password . " "
+    retu substitute(a:cmd, "^svn ", repstr, "")
+endf
+"2}}}
+
+fun! svnj#svn#exec_with_auth(cmd) "{{{2
+    let [cmd, status] = [a:cmd, svnj#failed()]
+    while 1
+        redr
+        let g:svnj_username = svnj#utils#input("Username for repository", "", "> ") | redr
+        let g:svnj_password = svnj#utils#inputsecret("Password for repository", "> ")
+        let repstr = "svn --username=". g:svnj_username . " --password=" . g:svnj_password . " "
+        let cmd = substitute(a:cmd, "^svn ", repstr, "")
+        let shellout = system(cmd)
+        if v:shell_error != 0 && svnj#svn#is_auth_err(shellout)
+            let [g:svnj_username, g:svnj_password]= ["",""]
+            call svnj#utils#showConsoleMsg("Failed authentication, try again[y/n] : ", 0)
+            if svnj#utils#getchar() ==? "y"  | cont | en
+        else
+            let status = svnj#passed()
+        endif
+        break
+    endwhile
+    retu [status, shellout]
+endf
+"2}}}
 
 fun! svnj#svn#info(url) "{{{2
     let svncmd = 'svn info --non-interactive ' . fnameescape(a:url)
@@ -17,7 +66,7 @@ fun! svnj#svn#infolog(url) "{{{2
     try
         let svncmd = 'svn info --non-interactive -' . a:url
         let result = result . svnj#utils#execShellCmd(svncmd)
-        let svncmd = 'svn log --non-interactive -' . a:url
+        let svncmd = 'svn log -v --non-interactive -' . a:url
         let result = result . svnj#utils#execShellCmd(svncmd)
     catch
         call svnj#utils#dbgMsg("svnj#svn#infolog", v:exception)
@@ -343,6 +392,7 @@ fun! svnj#svn#logs(maxlogs, svnurl) "{{{2
     let shellist = split(shellout, '\n')
     unlet! shellout
     let logentries = []
+    let g:svnj_logversions = []
     try
         for idx in range(0,  len(shellist)-1)
             let curline = shellist[idx]
@@ -354,6 +404,7 @@ fun! svnj#svn#logs(maxlogs, svnurl) "{{{2
                         let logentry = {}
                         let contents = split(curline, '|')
                         let revision = svnj#utils#strip(contents[0])
+                        call add(g:svnj_logversions, revision)
                         let logentry.revision = revision
                         let logentry.line = revision . ' ' . join(contents[1:], '|')
                         let idx = idx + 1
@@ -373,6 +424,21 @@ fun! svnj#svn#logs(maxlogs, svnurl) "{{{2
         unlet! shellist
     catch | endtry
     retu [logentries, svncmd]
+endf
+"2}}}
+
+fun! svnj#svn#oldandnewrevisions(revision, svnurl) "{{{2
+    let [newrev, olderrev] = ["", ""]
+    try
+        let idxcurrev = index(g:svnj_logversions, a:revision)
+        if idxcurrev != -1
+            let newrev = idxcurrev > 0 ? g:svnj_logversions[idxcurrev - 1] : ""
+            let olderrev = idxcurrev <= len(g:svnj_logversions) - 2 ? g:svnj_logversions[idxcurrev + 1] : ""
+        endif
+    catch
+        call svnj#utils#dbgMsg("At svnj#svn#oldandnewrevisions", v:exception)
+    endtry
+    retu [newrev, olderrev]
 endf
 "2}}}
 

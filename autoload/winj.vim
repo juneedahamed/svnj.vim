@@ -32,12 +32,13 @@ endf
 
 fun! winj#close()
     let jwinnr = bufwinnr(s:jwinname)
-    if jwinnr > 0
-        silent! exe  jwinnr . 'wincmd w'
-        silent! exe  jwinnr . 'wincmd c'
-    endif
+    if jwinnr < 0 | retu | en
+    call svnj#altwinnr()
+    let prevwinnr=winnr() 
+    exe jwinnr . "wincmd w" | wincmd c 
+    exe prevwinnr . "wincmd w" 
     if exists('s:vim_tm') | let &tm = s:vim_tm | en
-    echo "" | redr
+    echo "" | redr 
     retu svnj#passed()
 endf
 
@@ -67,7 +68,7 @@ endf
 fun! winj#populateJWindow(cdict)
     try 
         call winj#New(a:cdict)
-        call winj#populate(a:cdict) | redr!
+        call winj#populate(a:cdict) 
         call svnj#prompt#start()
     catch 
         call svnj#utils#dbgMsg("populateJWindow", v:exception)
@@ -110,7 +111,7 @@ fun! winj#repopulate(fltr, incr)
         call svnj#home()
         setl modifiable  
 
-	    sil! exe '%d _ '
+	    sil! exe '%d _ ' | redr
         let [lines, s:fregex] = svnj#fltr#filter(s:clines, a:fltr, g:svnj_fuzzy_search_result_max)
 
         if len(lines) <= 0 
@@ -127,7 +128,8 @@ fun! winj#repopulate(fltr, incr)
         call svnj#utils#dbgMsg("At repopulate", v:exception)
     endtry
 
-    setl nomodifiable | redr
+    setl nomodifiable | redraws 
+    redr
 endf
 
 fun! s:setline(start, lines)
@@ -161,7 +163,6 @@ fu! winj#stl()
     catch
         call svnj#utils#dbgMsg("At winj#stl", v:exception)
     endtry
-    redraws
 endf
 "2}}}
 "1}}}

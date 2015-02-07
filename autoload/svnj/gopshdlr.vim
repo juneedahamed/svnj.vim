@@ -169,6 +169,14 @@ fun! svnj#gopshdlr#info(argdict) "{{{2
 endf
 "2}}}
 
+fun! svnj#gopshdlr#displayinfo(revision, svnurl) "{{{2
+    let arg = a:revision . "\ " . a:svnurl
+    let info = svnj#svn#infolog(arg)
+    call svnj#utils#showConsoleMsg(info, 1)
+endf
+"2}}}
+
+
 fun! svnj#gopshdlr#displayAffectedFiles(dict, title, slist) "{{{2
     try
         let title = "SVN Diff:" . a:title
@@ -255,3 +263,11 @@ fun! svnj#gopshdlr#closeBuffer(argdict) "{{{2
     endif
 endf
 "2}}}
+
+fun! svnj#gopshdlr#removeSticky(...) "{{{2
+    if !svnj#prompt#isploop()
+        call feedkeys("\<C-s>")
+    endif
+endf
+"2}}}
+

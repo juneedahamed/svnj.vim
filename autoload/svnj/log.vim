@@ -169,9 +169,9 @@ fun! svnj#log#affectedfiles(argdict)
         endfor
 
         if revisionA != "" && revisionB != ""
-            let title = revisionA . ':' . revisionB . '@' . url
+            let title = revisionB . ':' . revisionA . '@' . url
             let [slist, adict.meta.cmd] = svnj#svn#affectedfilesAcross(url,
-                        \ revisionA, revisionB)
+                        \ revisionB, revisionA)
         else 
             let revision = adict.logd.contents[akey].revision
             let title = revision . '@' . url
