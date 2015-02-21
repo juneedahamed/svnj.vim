@@ -144,6 +144,8 @@ COMMANDS                                                         *svnj-commands*
   |Ctrl-e|     : Select/Mark All
   |Ctrl-z|     : Commit selected/marked  (svn ci)
   |Ctrl-g|     : Add selected/marked as new repo elements (svn add)
+  |Ctrl-b|     : Bookmark the dir/file. To persist the bookmarks across sessions please
+                   see help |g:svnj_browse_bookmarks_cache| or |g:svnj_browse_cache_all|
   |F5|         : Redraw the buffer
 
   Global-Options:~

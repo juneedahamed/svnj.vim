@@ -147,7 +147,7 @@ fun! svnj#svn#copywc(urls) "{{{2
     let svncmd = "svn cp --non-interactive " . urlstr
     echohl Title | echo "Will execute the following command"
     echohl Directory | echo svncmd
-    echohl Question | echo "Press y to continue, Any key to cancel" 
+    echohl Question | echo "Press y to continue, enter to cancel" 
     echohl None
     let choice = input("Enter choice: ")
     if choice ==? "y"

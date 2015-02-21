@@ -24,7 +24,7 @@ fun! s:browseops()
        \ "\<C-v>"  : {"bop":"<c-v>", "dscr":'C-v:VS', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#vs']},
        \ "\<C-d>"  : {"bop":"<c-d>", "dscr":'C-d:Diff', "fn":'svnj#gopshdlr#openFile', "args":['svnj#act#diff']},
        \ "\<C-l>"  : {"bop":"<c-l>", "dscr":'C-l:Log', "fn":'svnj#brwsr#fileLogs'},
-       \ "\<C-b>"  : {"bop":"<c-b>", "dscr":'C-b:Bk', "fn":'svnj#gopshdlr#book'},
+       \ "\<C-b>"  : {"bop":"<c-b>", "dscr":'C-b:Book', "fn":'svnj#gopshdlr#book'},
        \ s:topkey  : {"bop":"<c-t>", "dscr":s:topdscr, "fn":'svnj#stack#top'},
        \ "\<C-i>"  : {"bop":"<c-i>", "dscr":'C-i:Info', "fn":'svnj#gopshdlr#info'},
        \ "\<C-a>"  : {"bop":"<c-a>", "dscr":'C-a:Afls', "fn":'svnj#brwsr#affectedfiles'},

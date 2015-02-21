@@ -120,7 +120,7 @@ fun! svnj#act#help(...)
     echohl Title
     echo " ******************************* "
     echohl Function
-    let x = input("Press key to continue ")
+    let x = input("Press Enter to continue ")
     echohl None
     call svnj#prompt#show()
 endf

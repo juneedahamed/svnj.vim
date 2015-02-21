@@ -18,7 +18,7 @@ fun! svnj#status#statusops()
                \ "\<C-i>"    :{"bop":"<c-i>", "dscr" :'C-i:Info', "fn":'svnj#gopshdlr#info'},
                \ "\<C-w>"    :{"bop":"<c-w>", "dscr" :'C-w:Wrap!', "fn":'svnj#gopshdlr#toggleWrap'},
                \ "\<C-y>"    :{"bop":"<c-y>", "dscr" :'C-y:Cmd', "fn":'svnj#gopshdlr#cmd'},
-               \ "\<C-b>"    :{"bop":"<c-b>", "dscr" :'C-b:Bk', "fn":'svnj#gopshdlr#book'},
+               \ "\<C-b>"     :{"bop":"<c-b>", "dscr" :'C-b:Book', "fn":'svnj#gopshdlr#book'},
                \ s:selectkey :{"bop":"<c-space>", "dscr" : s:selectdscr, "fn":'svnj#gopshdlr#select'},
                \ "\<C-e>"    : {"bop":"<c-e>", "dscr":'C-e:SelectAll', "fn":'svnj#gopshdlr#selectall'},
                \ "\<C-z>"    : {"bop":"<c-z>", "dscr":'C-z:Commit', "fn":'svnj#gopshdlr#commit'},
