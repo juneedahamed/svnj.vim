@@ -71,6 +71,7 @@ endf
 
 fun! svnj#utils#expand(path) "{{{2
     let path = expand(a:path)
+    if has('win32') | let path = substitute(path, '\\', '/', 'g') | en
     retu  path == ""? a:path : path
 endf
 "2}}}
