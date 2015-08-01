@@ -242,7 +242,7 @@ fun! svnj#svn#workingCopyRootPath() "{{{2
         if len(lines) >= 1
             let tokens = split(lines[0], ':')
             if len(tokens) >= 2
-                let tmpworkingdir = svnj#utils#strip(tokens[1])
+                let tmpworkingdir = vc#utils#strip(join(tokens[1:], ':'))
                 if svnj#utils#isdir(tmpworkingdir) | retu tmpworkingdir | en
             endif
         endif
