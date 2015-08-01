@@ -242,7 +242,7 @@ fun! svnj#svn#workingCopyRootPath() "{{{2
         if len(lines) >= 1
             let tokens = split(lines[0], ':')
             if len(tokens) >= 2
-                let tmpworkingdir = svnj#utils#strip(tokens[1])
+                let tmpworkingdir = svnj#utils#strip(join(tokens[1:], ':'))
                 if svnj#utils#isdir(tmpworkingdir) | retu tmpworkingdir | en
             endif
         endif
@@ -259,8 +259,8 @@ fun! svnj#svn#repoRoot() "{{{2
         let lines = s:matchShellOutput(svncmd, "^Repository Root:")
         if len(lines) >= 1
             let root = substitute(lines[0], "^Repository Root:", "", "")
-            let root = svnj#utils#strip(root)
-            retu root
+                let root = svnj#utils#strip(root)
+                retu root
         endif
     catch
     endtry
