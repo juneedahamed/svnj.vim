@@ -137,7 +137,9 @@ endf
 
 fun! s:resignselect(line, key, linenum, cmdpost, selcnt)
     if !has_key(s:selectd, a:key) | retur a:selcnt | en
-    if matchstr(a:line, s:selectd[a:key].line) == ""  | retur a:selcnt | en
+    let line = substitute(a:line, '\\', '/', 'g')
+    let selectdline = substitute(s:selectd[a:key].line, '\\', '/', 'g')
+    if matchstr(line, selectdline) == ""  | retur a:selcnt | en
     exe 'silent! sign place ' . a:key . ' line=' . a:linenum . a:cmdpost
     retu a:selcnt - 1
 endf
