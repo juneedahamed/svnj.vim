@@ -8,16 +8,32 @@
 
 "callback funs {{{2
 fun! svnj#act#blame(svnurl, filepath)
-    setlocal scrollbind nowrap nofoldenable 
+    setlocal nowrap nofoldenable
     call winj#close()
-    let filetype=&ft
-    let cmd="svn blame " . fnameescape(a:filepath)
+
+    " Execute svn blame
+    let cmd="svn blame -v -x-w " . fnameescape(a:filepath)
     let cmd="%!" . svnj#svn#fmt_auth_info(cmd)
-    let newfile = 'keepalt vnew '
-    exec newfile | exec cmd
-    exe "setl bt=nofile bh=wipe nobl noswf nowrap ro ft=" . filetype
-    setlocal scrollbind nowrap nofoldenable
-    retu svnj#passed()
+    keepalt vnew | exec cmd
+
+    " Strip source code from blame output
+    %s/^\(\s*\S\+\s\+\S\+\) \(\S\+ \S\+\).*/\2 \1/
+    nohlsearch
+
+    " Fit blame output width
+    let width=strlen(getline('.'))
+    exec "setlocal winfixwidth winwidth=" . width
+    exec "vertical resize " . width
+
+    " Setup blame window
+    setlocal filetype=svnjblame
+    setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
+    setlocal nowrap nofoldenable nonumber nomodified readonly
+    setlocal scrollbind
+    wincmd p " return to previous window
+    setlocal scrollbind
+    syncbind
+    return svnj#passed()
 endf
 
 "fun! svnj#act#diff(revision, svnurl, force)
@@ -38,9 +54,9 @@ fun! svnj#act#diff(...)
         let fname =  svnj#utils#strip(arevision)."_".svnj#utils#strip(asvnurl)
     endif
 
-    diffthis | exec 'vnew! ' fnameescape(fname) 
+    diffthis | exec 'vnew! ' fnameescape(fname)
     exec cmd |  diffthis
-    
+
     exe 'silent! com! GoSVNJ call svnj#home()'
     exe 'map <buffer> <silent> <c-q>' '<esc>:diffoff!<cr>:bd!<cr>:GoSVNJ<cr>'
     let ops = "C-q:Quit"
@@ -83,7 +99,7 @@ fun! svnj#act#efile(revision, url)
         else
             let cmd="svn cat " . revision . ' ' . fnameescape(a:url)
             let cmd="%!" . svnj#svn#fmt_auth_info(cmd)
-            silent! exe 'e ' fnameescape(fname) | exe cmd 
+            silent! exe 'e ' fnameescape(fname) | exe cmd
             exe "setl bt=nofile"
         endif
     catch | endtry
@@ -98,7 +114,7 @@ fun! svnj#act#vs(revision, url)
     else
         let cmd="svn cat " . revision . ' ' . fnameescape(a:url)
         let cmd="%!" . svnj#svn#fmt_auth_info(cmd)
-        silent! exe 'vsplit ' fnameescape(fname) | exe cmd 
+        silent! exe 'vsplit ' fnameescape(fname) | exe cmd
         exe "setl bt=nofile"
     endif
     retu s:endOp(1)
@@ -127,14 +143,14 @@ endf
 
 "helpers funs {{{2
 fun! s:rev_fname(revision, url)
-    let revision = a:revision == "" ? "" : " -" .  a:revision 
-    let fname = a:revision == "" ? a:url : a:revision . '_' . 
+    let revision = a:revision == "" ? "" : " -" .  a:revision
+    let fname = a:revision == "" ? a:url : a:revision . '_' .
                 \ svnj#utils#strip(a:url)
     retu [revision, fname]
 endf
 
 fun! s:startOp()
-    if svnj#prompt#isploop() 
+    if svnj#prompt#isploop()
         call winj#close()
         retu svnj#passed()
     endif
