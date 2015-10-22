@@ -1,8 +1,10 @@
 #svnj.vim
 
-#NOTE:  New and Improved version of the script with support for svn GIT, HG and BZR is now available at https://github.com/juneedahamed/vc.vim
- Users of svnj.vim just need to change the .vimrc settings from svnj_ to vc_ after cloning the new script
+#NOTE:  New and Improved version of the script with support for SVN, GIT, HG and BZR is now available at https://github.com/juneedahamed/vc.vim
+
+Users of svnj.vim just need to change the .vimrc settings from svnj_ to vc_ after cloning the new script
  
+  
 VIM (VIM 7 and up) plugin for subversion (svn)
 Support for browsing the repository, working copy, bookmarks.
 
